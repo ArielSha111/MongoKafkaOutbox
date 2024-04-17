@@ -20,3 +20,14 @@ comments:
 - at the end of a valid convertion the data should be sent to schema registry
 - data should be saved in the mongo using avro
 - on the first phase we will only provide a way to trnsfer a session and an object we want to send in an event
+
+
+Usage:
+the usage should be via three methods:
+1. store which stores in the outbox using avro
+2. publish that publishes using schema registry and using the outbox
+3. save changes to trigger the machanisem and to return a bool
+4. Store and publish which does all the operations with saving (saving will trigger the needed action) should return bool
+5. Store and publish which does all the operations without saving (a save shoud be used after it to trigger all) is void
+
+

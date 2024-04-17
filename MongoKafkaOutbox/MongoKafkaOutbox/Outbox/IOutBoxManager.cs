@@ -1,5 +1,6 @@
 ﻿namespace MongoKafkaOutbox.Messaging;
 
-internal interface IOutBoxing
+internal interface IOutboxManager
 {
+
 }

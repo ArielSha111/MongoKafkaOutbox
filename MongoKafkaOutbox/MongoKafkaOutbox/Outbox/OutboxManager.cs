@@ -1,5 +1,5 @@
 ﻿namespace MongoKafkaOutbox.Messaging;
 
-internal class OutBoxing : IOutBoxing
+internal class OutboxManager : IOutboxManager
 {
 }
