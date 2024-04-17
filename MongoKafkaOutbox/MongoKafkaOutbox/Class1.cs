@@ -1,7 +1,6 @@
-﻿namespace MongoKafkaOutbox
-{
-    public class Class1
-    {
+﻿namespace MongoKafkaOutbox;
 
-    }
+public class Class1
+{
+
 }

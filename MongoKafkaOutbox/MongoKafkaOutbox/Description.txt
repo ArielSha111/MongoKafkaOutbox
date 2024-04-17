@@ -1,0 +1,22 @@
+﻿goal:
+The goal of this nuget is to implement the outbox pattern using Kafka and mongo, 
+henc e it is desiered to provide a way to create a transaction for the next action:
+storing data in mongo and send a kafka event describing the data was saved succfully.
+this is desiered as we wont want to store the data in mongo if we cant send the event.
+the way it will work is:
+1. trasaction is opened
+2. data is stored to mongo
+3. event data is stored to mongo is a so called outbox collection to say that the data needed was stored
+4. only if 2 insertions worked the transaction is cloesed
+5. side actions in the service will connsttently listen the this outbox collection
+ and read the events from it
+6. the reading should be thred safe
+7. for each message an event should be send using kafka
+8. when event was sent the item is removed from mongo using a state change
+
+comments:
+- Use Kafka Schema Registry
+- the payload should be converted using AVRO format
+- at the end of a valid convertion the data should be sent to schema registry
+- data should be saved in the mongo using avro
+- on the first phase we will only provide a way to trnsfer a session and an object we want to send in an event
