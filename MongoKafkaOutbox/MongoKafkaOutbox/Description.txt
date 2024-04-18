@@ -20,7 +20,9 @@ comments:
 - at the end of a valid convertion the data should be sent to schema registry
 - data should be saved in the mongo using avro
 - on the first phase we will only provide a way to trnsfer a session and an object we want to send in an event
-
+- i need the next three outbox collectotion, outbox state and inbox collection
+- leaRN ABOUT DEBIZUEM CONNECTOR AND MONGO CDC
+- 
 
 Usage:
 the usage should be via three methods:
