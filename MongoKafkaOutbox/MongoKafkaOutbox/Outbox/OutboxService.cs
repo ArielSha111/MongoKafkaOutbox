@@ -1,4 +1,5 @@
-﻿using MongoDB.Driver;
+﻿using MongoDB.Bson;
+using MongoDB.Driver;
 using MongoKafkaOutbox.Messaging;
 using MongoKafkaOutbox.Mongo;
 
@@ -9,64 +10,53 @@ public class OutboxService
     private MongoDBService _mongoDBService;
     private KafkaService _kafkaService;
 
-    public OutboxService(string mongoConnectionString, string mongoDatabaseName, string kafkaBootstrapServers, string schemaRegistryUrl)
+    public BsonDocument StuffDocument { get; set; }
+    public OutboxEvent OutboxEvent { get; set; }
+
+
+    public OutboxService()
     {
-        _mongoDBService = new MongoDBService(mongoConnectionString, mongoDatabaseName);
-        _kafkaService = new KafkaService(kafkaBootstrapServers, schemaRegistryUrl);
+        _mongoDBService = new MongoDBService();
+        _kafkaService = new KafkaService();
     }
 
-    public string Store(object eventData)
+    public async Task Add(BsonDocument stuffDocument)
     {
-        var sessionId = Guid.NewGuid().ToString();
-        var avroSerializedData = SerializeToAvro(eventData);
-        var outboxEvent = new OutboxEvent { SessionId = sessionId, EventData = avroSerializedData.ToString(), Sent = false };
-
-        _mongoDBService.OutboxCollection.InsertOne(outboxEvent);
-        _mongoDBService.OutboxStateCollection.InsertOne(new OutboxState { SessionId = sessionId, Completed = false });
-
-        return sessionId;
-    }
-
-    public async Task Publish(string sessionId)
-    {
-        var outboxEvent = await _mongoDBService.OutboxCollection.FindOneAndUpdateAsync(
-            Builders<OutboxEvent>.Filter.Eq(e => e.SessionId, sessionId) & Builders<OutboxEvent>.Filter.Eq(e => e.Sent, false),
-            Builders<OutboxEvent>.Update.Set(e => e.Sent, true));
-
-        if (outboxEvent != null)
+        try
         {
-            await _kafkaService.ProduceAvroMessageAsync("OutboxEvents", sessionId, outboxEvent.EventData);
+            StuffDocument = stuffDocument;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error occurred: {ex}");
+            throw;
         }
     }
 
-    public bool SaveChanges(string sessionId)
+    public async Task Publish<T>(T EventData)
     {
-        var updatedOutboxState = _mongoDBService.OutboxStateCollection.UpdateOne(
-            Builders<OutboxState>.Filter.Eq(s => s.SessionId, sessionId),
-            Builders<OutboxState>.Update.Set(s => s.Completed, true));
-
-        return updatedOutboxState.ModifiedCount > 0;
+        OutboxEvent = new OutboxEvent()
+        {
+            Id = ObjectId.GenerateNewId(),
+            SessionId = "",
+            EventData = "",
+            Sent = false
+        };
     }
 
-    public async Task<bool> StoreAndPublish(string sessionId, object eventData)
+    public async Task<bool> SaveChanges()
     {
-        var storedSessionId = Store(eventData);
-        if (storedSessionId == null) 
+        try
+        {
+            await _mongoDBService.AddToBothCollectionsWithTransaction(OutboxEvent, StuffDocument);
+
+            await _kafkaService.ProduceMessageAsync();
+            return true;
+        }
+        catch (Exception)
+        {
+
             return false;
-
-        await Publish(sessionId);
-        return SaveChanges(sessionId);
-    }
-
-    public async Task StoreAndPublishWithoutSaving(string sessionId, object eventData)
-    {
-        var avroSerializedData = SerializeToAvro(eventData);
-        await _kafkaService.ProduceAvroMessageAsync("OutboxEvents", sessionId, avroSerializedData);
-    }
-
-    private byte[] SerializeToAvro(object data)
-    {
-        // Implement AVRO serialization logic here
-        return null; // Placeholder for AVRO serialized data
+        }
     }
 }

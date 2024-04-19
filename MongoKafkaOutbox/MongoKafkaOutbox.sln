@@ -23,7 +23,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConsoleApp", "ConsoleApp\Co
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Nuget", "Nuget", "{4699220C-A114-4956-B210-0B8A0C9AACB7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MongoKafkaOutbox", "MongoKafkaOutbox\MongoKafkaOutbox.csproj", "{6825DBD5-4C00-4926-8E4F-DB968001644F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MongoKafkaOutbox", "MongoKafkaOutbox\MongoKafkaOutbox.csproj", "{6825DBD5-4C00-4926-8E4F-DB968001644F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleApp2", "ConsoleApp2\ConsoleApp2.csproj", "{D17496C7-12B5-453E-9572-193A272AF1C1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -59,6 +61,10 @@ Global
 		{6825DBD5-4C00-4926-8E4F-DB968001644F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6825DBD5-4C00-4926-8E4F-DB968001644F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6825DBD5-4C00-4926-8E4F-DB968001644F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D17496C7-12B5-453E-9572-193A272AF1C1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D17496C7-12B5-453E-9572-193A272AF1C1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D17496C7-12B5-453E-9572-193A272AF1C1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D17496C7-12B5-453E-9572-193A272AF1C1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -71,6 +77,7 @@ Global
 		{F1065668-AEBA-4D47-9D7C-2296A62E2496} = {02B1FF76-66DE-4B56-BE7C-7B1D2D7A93CD}
 		{4009E82C-79BB-47E8-B089-3F7FD9B36FF7} = {A396C31D-23A8-4BAA-8E97-DC4701421229}
 		{6825DBD5-4C00-4926-8E4F-DB968001644F} = {4699220C-A114-4956-B210-0B8A0C9AACB7}
+		{D17496C7-12B5-453E-9572-193A272AF1C1} = {A396C31D-23A8-4BAA-8E97-DC4701421229}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {9DAFC298-7675-40C9-8766-62754AF9A621}
