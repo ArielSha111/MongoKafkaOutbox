@@ -28,13 +28,10 @@ public class KafkaService
         using (var producer = new ProducerBuilder<Null, string>(config).Build())
         {
             try
-            {
-                while (true)
-                {
-                    var message = "some message";
-                    var result = await producer.ProduceAsync("", new Message<Null, string> { Value = message });
-                    Console.WriteLine($"Produced message '{message}' to topic {result.Topic}, partition {result.Partition}, offset {result.Offset}");
-                }
+            {          
+                var message = "some message";
+                var result = await producer.ProduceAsync("my_topic", new Message<Null, string> { Value = message });
+                Console.WriteLine($"Produced message '{message}' to topic {result.Topic}, partition {result.Partition}, offset {result.Offset}");              
             }
             catch (ProduceException<Null, string> ex)
             {
