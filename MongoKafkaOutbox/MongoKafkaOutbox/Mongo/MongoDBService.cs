@@ -80,4 +80,11 @@ public class MongoDBService : IMongoDBService
 
         return outboxEvent;
     }
+
+    public async Task UpdateOutbox(ObjectId objectId)
+    {
+        var filter = Builders<OutboxEvent>.Filter.Eq(e => e.Id, objectId);
+        var update = Builders<OutboxEvent>.Update.Set(e => e.eventStatus, OutboxEventStatus.Published);
+        await OutboxCollection.UpdateOneAsync(filter, update);
+    }
 }

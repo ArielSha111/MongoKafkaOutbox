@@ -12,4 +12,5 @@ public interface IMongoDBService
 
     public Task AddToBothCollectionsWithTransaction(OutboxEvent outboxEvent, BsonDocument stuffDocument);
     public Task<OutboxEvent> ReadAndUpdateOutbox();
+    public Task UpdateOutbox(ObjectId objectId);
 }

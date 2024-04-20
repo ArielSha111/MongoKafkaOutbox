@@ -58,6 +58,7 @@ public class OutboxService
                     {
                         var eventToPublish = await _mongoDBService.ReadAndUpdateOutbox();
                         await _kafkaService.ProduceMessageAsync(eventToPublish);
+                        await _mongoDBService.UpdateOutbox(eventToPublish.Id);
                         return;
                     }
                     catch
