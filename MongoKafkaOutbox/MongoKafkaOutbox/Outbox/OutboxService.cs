@@ -48,13 +48,30 @@ public class OutboxService
         try
         {
             await _mongoDBService.AddToBothCollectionsWithTransaction(TempEvent, StuffDocument);
-            var eventToPublish = await _mongoDBService.ReadAndUpdateOutbox();
-            await _kafkaService.ProduceMessageAsync(eventToPublish);
+
+            //todo, remove from here as it should be a standalone publisher that does that
+            Task.Run(async () =>
+            {
+                while (true)
+                {
+                    try
+                    {
+                        var eventToPublish = await _mongoDBService.ReadAndUpdateOutbox();
+                        await _kafkaService.ProduceMessageAsync(eventToPublish);
+                        return;
+                    }
+                    catch
+                    {
+                        Console.WriteLine("");
+                    }
+                }
+            });
+
             return true;
+             
         }
         catch (Exception)
         {
-
             return false;
         }
     }
