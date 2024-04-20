@@ -8,7 +8,7 @@ namespace YourConsoleAppNamespace
     {
         static async Task Main(string[] args)
         {
-            var outboxService = new OutboxService(new MyMongoDBService(), new MyKafkaService());
+            var outboxService = new OutboxService<BsonDocument>(new MyMongoDBService(), new MyKafkaService());
             var stuffDocument = new BsonDocument
             {
                 { "key", "value" },

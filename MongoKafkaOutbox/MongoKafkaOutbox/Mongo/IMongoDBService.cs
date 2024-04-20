@@ -4,12 +4,12 @@ using MongoKafkaOutbox.Outbox;
 
 namespace MongoKafkaOutbox.Mongo;
 
-public interface IMongoDBService
+public interface IMongoDBService<T>
 {
-    public abstract IMongoCollection<BsonDocument> Collection { get; set; }
+    public abstract IMongoCollection<T> Collection { get; set; }
     public abstract IMongoCollection<OutboxEvent> OutboxCollection { get; set; }
 
-    public Task AddToBothCollectionsWithTransaction(OutboxEvent outboxEvent, BsonDocument stuffDocument);
+    public Task AddToBothCollectionsWithTransaction(Func<Task> mainTask, Func<Task> outboxTask);
     public Task<OutboxEvent> ReadAndUpdateOutbox();
     public Task UpdateOutbox(ObjectId objectId);
 }

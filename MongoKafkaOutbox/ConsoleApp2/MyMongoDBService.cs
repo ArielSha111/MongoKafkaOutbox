@@ -7,8 +7,8 @@ namespace ConsoleApp2;
 
 public class MyMongoDBService : MongoDBService
 {
-    protected override IMongoCollection<BsonDocument> Collection { get; set; }
-    protected override IMongoCollection<OutboxEvent> OutboxCollection { get; set; }
+    public override IMongoCollection<BsonDocument> Collection { get; set; }
+    public override IMongoCollection<OutboxEvent> OutboxCollection { get; set; }
 
     public MyMongoDBService()
     {

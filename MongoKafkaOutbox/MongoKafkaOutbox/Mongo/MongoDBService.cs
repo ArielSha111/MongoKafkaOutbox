@@ -4,21 +4,21 @@ using MongoKafkaOutbox.Outbox;
 
 namespace MongoKafkaOutbox.Mongo;
 
-public abstract class MongoDBService : IMongoDBService
+public abstract class MongoDBService : IMongoDBService<BsonDocument>
 {
     protected IMongoDatabase _database { get; set; }
     public abstract IMongoCollection<BsonDocument> Collection { get; set; }
     public abstract IMongoCollection<OutboxEvent> OutboxCollection { get; set; }
 
 
-    public async Task AddToBothCollectionsWithTransaction(OutboxEvent outboxEvent, BsonDocument stuffDocument)
+    public async Task AddToBothCollectionsWithTransaction(Func<Task> mainTask, Func<Task> outboxTask)
     {
         //using var session = await _database.Client.StartSessionAsync();
         //session.StartTransaction();
         //try
         //{
-        //    await OutboxCollection.InsertOneAsync(session, outboxEvent);
-        //    await StuffCollection.InsertOneAsync(session, stuffDocument);
+        //    await mainTask();
+        //    await outboxTask();
         //    await session.CommitTransactionAsync();
         //}
         //catch (Exception ex)
@@ -26,9 +26,9 @@ public abstract class MongoDBService : IMongoDBService
         //    await session.AbortTransactionAsync();
         //    throw ex;
         //}
-     
-        await OutboxCollection.InsertOneAsync(outboxEvent);
-        await Collection.InsertOneAsync(stuffDocument);          
+
+        await mainTask();
+        await outboxTask();
     }
 
     public async Task<OutboxEvent> ReadAndUpdateOutbox()
