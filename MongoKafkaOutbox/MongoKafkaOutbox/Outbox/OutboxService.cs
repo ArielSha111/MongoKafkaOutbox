@@ -1,6 +1,5 @@
-﻿
-
-using MongoDB.Bson;
+﻿using MongoDB.Bson;
+using MongoDB.Driver;
 using MongoKafkaOutbox.Messaging;
 using MongoKafkaOutbox.Mongo;
 
@@ -18,6 +17,22 @@ public class OutboxService<T>(IMongoDBService<T> mongoDBService, IKafkaService k
         {
             await mongoDBService.Collection.InsertOneAsync(document);
         };      
+    }
+
+    public virtual async Task Delete(ObjectId id)
+    {
+        mainTask = async () =>
+        {
+            await mongoDBService.Collection.DeleteOneAsync(Builders<T>.Filter.Eq("_id", id));
+        };
+    }
+
+    public virtual async Task Update(ObjectId id, T updatedDocument)
+    {
+        mainTask = async () =>
+        {
+            await mongoDBService.Collection.ReplaceOneAsync(Builders<T>.Filter.Eq("_id", id), updatedDocument);
+        };
     }
 
     public virtual async Task Publish<E>(E eventData, string topic)
