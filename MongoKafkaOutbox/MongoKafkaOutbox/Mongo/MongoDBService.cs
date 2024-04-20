@@ -4,12 +4,12 @@ using MongoKafkaOutbox.Outbox;
 
 namespace MongoKafkaOutbox.Mongo;
 
-public class MongoDBService
+public class MongoDBService : IMongoDBService
 {
     private IMongoDatabase _database;
+    public IMongoCollection<BsonDocument> StuffCollection => _database.GetCollection<BsonDocument>("Stuff");
 
     public IMongoCollection<OutboxEvent> OutboxCollection => _database.GetCollection<OutboxEvent>("Outbox");
-    public IMongoCollection<BsonDocument> StuffCollection => _database.GetCollection<BsonDocument>("Stuff");
 
     public MongoDBService()
     {
@@ -35,5 +35,49 @@ public class MongoDBService
      
         await OutboxCollection.InsertOneAsync(outboxEvent);
         await StuffCollection.InsertOneAsync(stuffDocument);          
+    }
+
+    public async Task<OutboxEvent> ReadAndUpdateOutbox()
+    {
+        //var filter = Builders<OutboxEvent>.Filter.Eq(e => e.eventStatus, OutboxEventStatus.Stored);
+        //var update = Builders<OutboxEvent>.Update.Set(e => e.eventStatus, OutboxEventStatus.InProcess);
+
+        //using (var session = _database.Client.StartSession())
+        //{
+        //    session.StartTransaction();
+
+        //    try
+        //    {
+        //        var options = new FindOneAndUpdateOptions<OutboxEvent>
+        //        {
+        //            ReturnDocument = ReturnDocument.After
+        //        };
+
+        //        var outboxEvent = OutboxCollection.FindOneAndUpdate(session, filter, update, options);
+
+        //        if (outboxEvent != null)
+        //        {
+        //            session.CommitTransaction();
+        //            return outboxEvent;
+        //        }
+        //        else
+        //        {
+        //            session.AbortTransaction();
+        //            return null;
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        session.AbortTransaction();
+        //        throw ex;
+        //    }
+        //}
+
+        var filter = Builders<OutboxEvent>.Filter.Eq(e => e.eventStatus, OutboxEventStatus.Stored);
+        var update = Builders<OutboxEvent>.Update.Set(e => e.eventStatus, OutboxEventStatus.InProcess);
+
+        var outboxEvent = await OutboxCollection.FindOneAndUpdateAsync(filter, update);
+
+        return outboxEvent;
     }
 }

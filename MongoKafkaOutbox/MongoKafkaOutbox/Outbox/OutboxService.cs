@@ -7,11 +7,11 @@ namespace MongoKafkaOutbox.Outbox;
 
 public class OutboxService
 {
-    private MongoDBService _mongoDBService;
-    private KafkaService _kafkaService;
+    private IMongoDBService _mongoDBService;
+    private IKafkaService _kafkaService;
 
     public BsonDocument StuffDocument { get; set; }
-    public OutboxEvent OutboxEvent { get; set; }
+    public OutboxEvent TempEvent { get; set; }
 
 
     public OutboxService()
@@ -32,14 +32,13 @@ public class OutboxService
             throw;
         }
     }
+
     public async Task Publish<T>(T eventData)
     {     
-        OutboxEvent = new OutboxEvent()
+        TempEvent = new OutboxEvent()
         {
-            Id = ObjectId.GenerateNewId(),
-            SessionId = "",
             EventData = eventData,
-            Sent = false
+            eventStatus = OutboxEventStatus.Stored
         };
     }
 
@@ -48,9 +47,9 @@ public class OutboxService
     {
         try
         {
-            await _mongoDBService.AddToBothCollectionsWithTransaction(OutboxEvent, StuffDocument);
-            //todo get the event from mongo while setting its state
-            await _kafkaService.ProduceMessageAsync(OutboxEvent);
+            await _mongoDBService.AddToBothCollectionsWithTransaction(TempEvent, StuffDocument);
+            var eventToPublish = await _mongoDBService.ReadAndUpdateOutbox();
+            await _kafkaService.ProduceMessageAsync(eventToPublish);
             return true;
         }
         catch (Exception)
