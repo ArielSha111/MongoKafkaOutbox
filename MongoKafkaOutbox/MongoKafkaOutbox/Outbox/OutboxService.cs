@@ -1,30 +1,25 @@
-﻿using MongoDB.Bson;
+﻿
+
+using MongoDB.Bson;
 using MongoKafkaOutbox.Messaging;
 using MongoKafkaOutbox.Mongo;
 
-
 namespace MongoKafkaOutbox.Outbox;
 
-public class OutboxService
+public abstract class OutboxService : IOutboxService
 {
-    private IMongoDBService _mongoDBService;
-    private IKafkaService _kafkaService;
+    protected IMongoDBService _mongoDBService;
+    protected IKafkaService _kafkaService;
 
-    public BsonDocument StuffDocument { get; set; }
-    public OutboxEvent TempEvent { get; set; }
+    private BsonDocument TempDocument { get; set; }
+    private OutboxEvent TempEvent { get; set; }
 
 
-    public OutboxService()
-    {
-        _mongoDBService = new MongoDBService();
-        _kafkaService = new KafkaService();
-    }
-
-    public async Task Add(BsonDocument stuffDocument)
+    public virtual async Task Add(BsonDocument document)
     {
         try
         {
-            StuffDocument = stuffDocument;
+            TempDocument = document;
         }
         catch (Exception ex)
         {
@@ -33,8 +28,8 @@ public class OutboxService
         }
     }
 
-    public async Task Publish<T>(T eventData)
-    {     
+    public virtual async Task Publish<T>(T eventData)
+    {
         TempEvent = new OutboxEvent()
         {
             EventData = eventData,
@@ -42,12 +37,12 @@ public class OutboxService
         };
     }
 
- 
-    public async Task<bool> SaveChanges()
+
+    public virtual async Task<bool> SaveChanges()
     {
         try
         {
-            await _mongoDBService.AddToBothCollectionsWithTransaction(TempEvent, StuffDocument);
+            await _mongoDBService.AddToBothCollectionsWithTransaction(TempEvent, TempDocument);
 
             //todo, remove from here as it should be a standalone publisher that does that using redis locks and dates the avoid starvation, https://debezium.io/ may also solve it
             Task.Run(async () =>
@@ -69,7 +64,7 @@ public class OutboxService
             });
 
             return true;
-             
+
         }
         catch (Exception)
         {

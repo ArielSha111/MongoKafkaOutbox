@@ -4,7 +4,7 @@ namespace MongoKafkaOutbox.Outbox;
 
 public interface IOutboxService
 {     
-    Task Add(BsonDocument stuffDocument);
+    Task Add(BsonDocument document);
     
     Task Publish<T>(T eventData);
    

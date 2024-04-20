@@ -7,7 +7,7 @@ namespace YourConsoleAppNamespace
     {
         static async Task Main(string[] args)
         {
-            var outboxService = new OutboxService();
+            var outboxService = new MyOutboxService();
             var stuffDocument = new BsonDocument
             {
                 { "key", "value" },
@@ -18,7 +18,7 @@ namespace YourConsoleAppNamespace
             try
             {
                 await outboxService.Add(stuffDocument);
-                await outboxService.Publish(new object());
+                await outboxService.Publish(new { Name = "some name", Age = 1});
                 bool savedSuccessfully = await outboxService.SaveChanges();
 
 
