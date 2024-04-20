@@ -49,7 +49,7 @@ public class OutboxService
         {
             await _mongoDBService.AddToBothCollectionsWithTransaction(TempEvent, StuffDocument);
 
-            //todo, remove from here as it should be a standalone publisher that does that
+            //todo, remove from here as it should be a standalone publisher that does that using redis locks and dates the avoid starvation
             Task.Run(async () =>
             {
                 while (true)
