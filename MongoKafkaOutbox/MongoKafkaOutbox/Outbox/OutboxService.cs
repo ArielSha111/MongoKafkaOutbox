@@ -1,7 +1,7 @@
 ﻿using MongoDB.Bson;
-using MongoDB.Driver;
 using MongoKafkaOutbox.Messaging;
 using MongoKafkaOutbox.Mongo;
+
 
 namespace MongoKafkaOutbox.Outbox;
 
@@ -32,25 +32,25 @@ public class OutboxService
             throw;
         }
     }
-
-    public async Task Publish<T>(T EventData)
-    {
+    public async Task Publish<T>(T eventData)
+    {     
         OutboxEvent = new OutboxEvent()
         {
             Id = ObjectId.GenerateNewId(),
             SessionId = "",
-            EventData = "",
+            EventData = eventData,
             Sent = false
         };
     }
 
+ 
     public async Task<bool> SaveChanges()
     {
         try
         {
             await _mongoDBService.AddToBothCollectionsWithTransaction(OutboxEvent, StuffDocument);
-
-            await _kafkaService.ProduceMessageAsync();
+            //todo get the event from mongo while setting its state
+            await _kafkaService.ProduceMessageAsync(OutboxEvent);
             return true;
         }
         catch (Exception)

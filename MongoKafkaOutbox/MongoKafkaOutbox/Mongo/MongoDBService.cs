@@ -8,48 +8,32 @@ public class MongoDBService
 {
     private IMongoDatabase _database;
 
+    public IMongoCollection<OutboxEvent> OutboxCollection => _database.GetCollection<OutboxEvent>("Outbox");
+    public IMongoCollection<BsonDocument> StuffCollection => _database.GetCollection<BsonDocument>("Stuff");
+
     public MongoDBService()
     {
         var client = new MongoClient("mongodb://localhost:27017");
         _database = client.GetDatabase("KafkaOutbox");
     }
 
-    public IMongoCollection<OutboxEvent> OutboxCollection => _database.GetCollection<OutboxEvent>("Outbox");
-
-    public IMongoCollection<BsonDocument> StuffCollection => _database.GetCollection<BsonDocument>("Stuff");
-    
     public async Task AddToBothCollectionsWithTransaction(OutboxEvent outboxEvent, BsonDocument stuffDocument)
     {
+        //using var session = await _database.Client.StartSessionAsync();
+        //session.StartTransaction();
+        //try
+        //{
+        //    await OutboxCollection.InsertOneAsync(session, outboxEvent);
+        //    await StuffCollection.InsertOneAsync(session, stuffDocument);
+        //    await session.CommitTransactionAsync();
+        //}
+        //catch (Exception ex)
+        //{
+        //    await session.AbortTransactionAsync();
+        //    throw ex;
+        //}
+     
         await OutboxCollection.InsertOneAsync(outboxEvent);
         await StuffCollection.InsertOneAsync(stuffDocument);          
     }
-
-
-    //public async Task AddToBothCollectionsWithTransaction(OutboxEvent outboxEvent, BsonDocument stuffDocument)
-    //{
-    //    // Start a client session
-    //    using (var session = await _database.Client.StartSessionAsync())
-    //    {
-    //        // Begin a transaction
-    //        session.StartTransaction();
-
-    //        try
-    //        {
-    //            // Insert into the outbox collection
-    //            await OutboxCollection.InsertOneAsync(session, outboxEvent);
-
-    //            // Insert into the stuff collection
-    //            await StuffCollection.InsertOneAsync(session, stuffDocument);
-
-    //            // Commit the transaction
-    //            await session.CommitTransactionAsync();
-    //        }
-    //        catch (Exception ex)
-    //        {
-    //            // If any operation fails, abort the transaction
-    //            await session.AbortTransactionAsync();
-    //            throw ex; // or handle the exception as needed
-    //        }
-    //    }
-    //}
 }

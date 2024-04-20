@@ -3,8 +3,8 @@
 namespace MongoKafkaOutbox.Outbox;
 public class OutboxEvent
 {
-    public ObjectId Id { get; set; }
+    public ObjectId Id { get; set; } // Assuming ObjectId is a valid type in your code
     public string SessionId { get; set; }
-    public string EventData { get; set; } // AVRO serialized data
+    public object EventData { get; set; }
     public bool Sent { get; set; }
 }
