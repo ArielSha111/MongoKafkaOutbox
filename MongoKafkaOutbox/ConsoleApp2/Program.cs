@@ -1,4 +1,5 @@
-﻿using MongoDB.Bson;
+﻿using ConsoleApp2;
+using MongoDB.Bson;
 using MongoKafkaOutbox.Outbox;
 
 namespace YourConsoleAppNamespace
@@ -7,7 +8,7 @@ namespace YourConsoleAppNamespace
     {
         static async Task Main(string[] args)
         {
-            var outboxService = new MyOutboxService();
+            var outboxService = new OutboxService(new MyMongoDBService(), new MyKafkaService());
             var stuffDocument = new BsonDocument
             {
                 { "key", "value" },
@@ -18,7 +19,7 @@ namespace YourConsoleAppNamespace
             try
             {
                 await outboxService.Add(stuffDocument);
-                await outboxService.Publish(new { Name = "some name", Age = 1});
+                await outboxService.Publish(new { Name = "some name", Age = 1}, "my_topic");
                 bool savedSuccessfully = await outboxService.SaveChanges();
 
 

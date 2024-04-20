@@ -3,22 +3,9 @@ using MongoKafkaOutbox.Outbox;
 
 namespace MongoKafkaOutbox.Messaging;
 
-public class KafkaService : IKafkaService
+public abstract class KafkaService : IKafkaService
 {
-    private readonly string _bootstrapServers;
-    private readonly string _topic;
-    private readonly ProducerConfig ProducerConfig;
-
-    public KafkaService()
-    {
-        _bootstrapServers = "localhost:9092";
-        _topic = "my_topic";
-
-        ProducerConfig = new ProducerConfig
-        {
-            BootstrapServers = _bootstrapServers
-        };
-    }
+    protected ProducerConfig ProducerConfig { get; set; }
 
     public async Task ProduceMessageAsync(OutboxEvent outboxEvent)
     {
@@ -27,7 +14,7 @@ public class KafkaService : IKafkaService
         using var producer = new ProducerBuilder<Null, string>(ProducerConfig).Build();
         try
         {         
-            var result = await producer.ProduceAsync(_topic, new Message<Null, string> { Value = message });
+            var result = await producer.ProduceAsync(outboxEvent.Topic, new Message<Null, string> { Value = message });
             Console.WriteLine($"Produced message '{message}' to topic {result.Topic}, partition {result.Partition}, offset {result.Offset}");           
         }
         catch (ProduceException<Null, string> ex)

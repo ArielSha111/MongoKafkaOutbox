@@ -5,10 +5,9 @@ using MongoKafkaOutbox.Outbox;
 namespace MongoKafkaOutbox.Mongo;
 
 public interface IMongoDBService
-{      
-    IMongoCollection<OutboxEvent> OutboxCollection { get; }
-  
-    IMongoCollection<BsonDocument> StuffCollection { get; }
+{
+    public abstract IMongoCollection<BsonDocument> Collection { get; set; }
+    public abstract IMongoCollection<OutboxEvent> OutboxCollection { get; set; }
 
     public Task AddToBothCollectionsWithTransaction(OutboxEvent outboxEvent, BsonDocument stuffDocument);
     public Task<OutboxEvent> ReadAndUpdateOutbox();
