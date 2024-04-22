@@ -1,14 +1,15 @@
-﻿using ConsoleApp2;
-using MongoDB.Bson;
-using MongoKafkaOutbox.Outbox;
+﻿using MongoDB.Bson;
+using MongoKafkaOutbox.Mongo;
 
-namespace YourConsoleAppNamespace
+namespace ConsoleApp2
 {
     class Program
     {
         static async Task Main(string[] args)
         {
-            var outboxService = new OutboxService<BsonDocument>(new MyMongoDBService(), new MyKafkaService());
+            var mongoOutboxClient = new MyMongoClient();
+            var KafkaOutboxClient = new MyKafkaProducer();
+
             var stuffDocument = new BsonDocument
             {
                 { "key", "value" },
@@ -18,9 +19,9 @@ namespace YourConsoleAppNamespace
 
             try
             {
-                await outboxService.Add(stuffDocument);
-                await outboxService.Publish(new { Name = "some name", Age = 1}, "my_topic");
-                bool savedSuccessfully = await outboxService.SaveChanges();
+                await mongoOutboxClient.AddStuff(stuffDocument);
+                await KafkaOutboxClient.Publish(new { Name = "some name", Age = 1 }, "my_topic");
+                bool savedSuccessfully = await mongoOutboxClient.SaveChanges();
 
 
                 if (savedSuccessfully)
