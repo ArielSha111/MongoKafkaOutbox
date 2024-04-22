@@ -12,8 +12,8 @@ public class MyMongoDBService : MongoDBService
 
     public MyMongoDBService()
     {
-        var client = new MongoClient("mongodb://localhost:27017");
-        _database = client.GetDatabase("KafkaOutbox");
+        var client = new MongoClient("mongodb://localhost:28017");
+        _database = client.GetDatabase("attachment-api-local-dev");
         Collection = _database.GetCollection<BsonDocument>("Stuff");
         OutboxCollection = _database.GetCollection<OutboxEvent>("Outbox");
     }
