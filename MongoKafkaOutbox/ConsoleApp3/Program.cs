@@ -6,7 +6,7 @@ using System.Text.Json;
 
 namespace ConsoleApp3
 {
-    class Program
+    public class Program
     {
         public static async Task Main(string[] args)
         {
@@ -42,6 +42,7 @@ namespace ConsoleApp3
                 throw ex;
             }
 
+            //this part should be done by debezium and mongo cdc
             try
             {
                 session.StartTransaction();
@@ -75,6 +76,31 @@ namespace ConsoleApp3
                 session.AbortTransaction();
                 throw ex;
             }
+
+
+            try
+            {
+                var config = new ConsumerConfig
+                {
+                    BootstrapServers = "localhost:9092",
+                    GroupId = "my_consumer_group",
+                    AutoOffsetReset = AutoOffsetReset.Earliest
+                };
+
+
+                using var consumer = new ConsumerBuilder<Ignore, string>(config).Build() ;              
+                consumer.Subscribe("my_topic");
+
+                while (true)
+                {
+                    var message = consumer.Consume();
+                    Console.WriteLine($"Consumed message '{message.Message.Value}' from topic {message.Topic}, partition {message.Partition}, offset {message.Offset}");
+                }             
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error occurred:");
+            }        
         }
     }
 }
