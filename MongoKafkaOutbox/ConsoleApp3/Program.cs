@@ -39,43 +39,45 @@ namespace ConsoleApp3
             catch (Exception ex)
             {
                 await session.AbortTransactionAsync();
+                Console.WriteLine($"Error occurred:{ex}");
                 throw ex;
             }
 
             //this part should be done by debezium and mongo cdc
-            try
-            {
-                session.StartTransaction();
+            //try
+            //{
+            //    session.StartTransaction();
 
-                var filter = Builders<OutboxRecord>.Filter.Eq(e => e.EventStatus, OutboxEventStatus.Stored);
-                var update = Builders<OutboxRecord>.Update.Set(e => e.EventStatus, OutboxEventStatus.InProcess);
+            //    var filter = Builders<OutboxRecord>.Filter.Eq(e => e.EventStatus, OutboxEventStatus.Stored);
+            //    var update = Builders<OutboxRecord>.Update.Set(e => e.EventStatus, OutboxEventStatus.InProcess);
 
-                var options = new FindOneAndUpdateOptions<OutboxRecord>
-                {
-                    ReturnDocument = ReturnDocument.After
-                };
+            //    var options = new FindOneAndUpdateOptions<OutboxRecord>
+            //    {
+            //        ReturnDocument = ReturnDocument.After
+            //    };
 
-                var outboxEvent = outboxCollection.FindOneAndUpdate(session, filter, update, options);
+            //    var outboxEvent = outboxCollection.FindOneAndUpdate(session, filter, update, options);
 
-                if (outboxEvent != null)
-                {
-                    session.CommitTransaction();
+            //    if (outboxEvent != null)
+            //    {
+            //        session.CommitTransaction();
 
-                    var result = await kafkaProducer.ProduceAsync("my_topic", new Message<string, string>
-                    { Value = outboxEvent.EventData });
-                    Console.WriteLine($"Produced message '{outboxEvent.EventData}' to topic {result.Topic}, partition {result.Partition}, offset {result.Offset}");
-                }
-                else
-                {
-                    session.AbortTransaction();
-                    throw new Exception();
-                }
-            }
-            catch (Exception ex)
-            {
-                session.AbortTransaction();
-                throw ex;
-            }
+            //        var result = await kafkaProducer.ProduceAsync("my_topic", new Message<string, string>
+            //        { Value = outboxEvent.EventData });
+            //        Console.WriteLine($"Produced message '{outboxEvent.EventData}' to topic {result.Topic}, partition {result.Partition}, offset {result.Offset}");
+            //    }
+            //    else
+            //    {
+            //        session.AbortTransaction();
+            //        throw new Exception();
+            //    }
+            //}
+            //catch (Exception ex)
+            //{
+            //    session.AbortTransaction();
+            //    Console.WriteLine($"Error occurred:{ex}");
+            //    throw ex;
+            //}
 
 
             try
@@ -88,18 +90,17 @@ namespace ConsoleApp3
                 };
 
 
-                using var consumer = new ConsumerBuilder<Ignore, string>(config).Build() ;              
+                using var consumer = new ConsumerBuilder<string, string>(config).Build();              
                 consumer.Subscribe("my_topic");
-
-                while (true)
-                {
-                    var message = consumer.Consume();
+                
+                var message = consumer.Consume();
+                if(message is not null)
                     Console.WriteLine($"Consumed message '{message.Message.Value}' from topic {message.Topic}, partition {message.Partition}, offset {message.Offset}");
-                }             
+                         
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error occurred:");
+                Console.WriteLine($"Error occurred:{ex}");
             }        
         }
     }
