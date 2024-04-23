@@ -1,120 +1,92 @@
 ﻿using Confluent.Kafka;
-using MongoDB.Bson;
-using MongoDB.Driver;
-using MongoKafkaOutbox.Outbox;
-using System.Text.Json;
+using MongoDB.Bson.Serialization.Conventions;
+using MongoDebeziumOutboxPattern;
 
-namespace ConsoleApp3
+ConfigMongo();
+
+var cts = new CancellationTokenSource();
+
+//var producer2 = Task.Run(() => StartProducer2(cts.Token));
+var producer = Task.Run(() => StartProducer(cts.Token));
+var consumer = Task.Run(() => StartConsumer(cts.Token));
+
+Console.ReadKey();
+cts.Cancel();
+await Task.WhenAll(producer, consumer);
+
+static async Task StartProducer(CancellationToken ct)
 {
-    public class Program
+    var userService = new UserService();
+    while (!ct.IsCancellationRequested)
     {
-        public static async Task Main(string[] args)
+        await userService.CreateRandomUser();
+        await Task.Delay(TimeSpan.FromSeconds(1));
+    }
+}
+
+static async void StartProducer2(CancellationToken ct)
+{
+    var config = new ProducerConfig
+    {
+        BootstrapServers = "localhost:9092" // Change to your Kafka bootstrap servers
+
+    };
+
+    using (var producer = new ProducerBuilder<Null, string>(config).Build())
+    {
+        try
         {
-            var mongoClient = new MongoClient("mongodb://localhost:28017");
-            var producerConfig = new ProducerConfig { BootstrapServers = "localhost:9092" };
-            var kafkaProducer = new ProducerBuilder<string, string>(producerConfig).Build();
-            var outboxCollection = mongoClient.GetDatabase("attachment-api-local-dev").GetCollection<OutboxRecord>("outbox");
-            var usersCollection = mongoClient.GetDatabase("attachment-api-local-dev").GetCollection<User>("users");
+            var topic = "outbox.event.user"; // Change to the topic you want to produce to
 
-            using var session = await mongoClient.StartSessionAsync();
-
-            try
+            for (int i = 0; i < 10; i++)
             {
-                session.StartTransaction();
+                var message = $"Message {i}";
 
-                var newUser = new User { Name = "Random User" + Guid.NewGuid().ToString() };
-                await usersCollection.InsertOneAsync(session, newUser);
+                var deliveryReport = await producer.ProduceAsync(topic, new Message<Null, string> { Value = message });
 
-                var outboxRecord = new OutboxRecord
-                {
-                    EventStatus = OutboxEventStatus.Stored,
-                    EventType = "UserCreated",
-                    EventData = JsonSerializer.Serialize(newUser),
-                };
-
-                await outboxCollection.InsertOneAsync(session, outboxRecord);
-
-                await session.CommitTransactionAsync();
+                Console.WriteLine($"Delivered message '{message}' to '{deliveryReport.TopicPartitionOffset}'");
             }
-            catch (Exception ex)
-            {
-                await session.AbortTransactionAsync();
-                Console.WriteLine($"Error occurred:{ex}");
-                throw ex;
-            }
-
-            //this part should be done by debezium and mongo cdc
-            //try
-            //{
-            //    session.StartTransaction();
-
-            //    var filter = Builders<OutboxRecord>.Filter.Eq(e => e.EventStatus, OutboxEventStatus.Stored);
-            //    var update = Builders<OutboxRecord>.Update.Set(e => e.EventStatus, OutboxEventStatus.InProcess);
-
-            //    var options = new FindOneAndUpdateOptions<OutboxRecord>
-            //    {
-            //        ReturnDocument = ReturnDocument.After
-            //    };
-
-            //    var outboxEvent = outboxCollection.FindOneAndUpdate(session, filter, update, options);
-
-            //    if (outboxEvent != null)
-            //    {
-            //        session.CommitTransaction();
-
-            //        var result = await kafkaProducer.ProduceAsync("my_topic", new Message<string, string>
-            //        { Value = outboxEvent.EventData });
-            //        Console.WriteLine($"Produced message '{outboxEvent.EventData}' to topic {result.Topic}, partition {result.Partition}, offset {result.Offset}");
-            //    }
-            //    else
-            //    {
-            //        session.AbortTransaction();
-            //        throw new Exception();
-            //    }
-            //}
-            //catch (Exception ex)
-            //{
-            //    session.AbortTransaction();
-            //    Console.WriteLine($"Error occurred:{ex}");
-            //    throw ex;
-            //}
-
-
-            try
-            {
-                var config = new ConsumerConfig
-                {
-                    BootstrapServers = "localhost:9092",
-                    GroupId = "my_consumer_group",
-                    AutoOffsetReset = AutoOffsetReset.Earliest
-                };
-
-
-                using var consumer = new ConsumerBuilder<string, string>(config).Build();              
-                consumer.Subscribe("my_topic");
-                
-                var message = consumer.Consume();
-                if(message is not null)
-                    Console.WriteLine($"Consumed message '{message.Message.Value}' from topic {message.Topic}, partition {message.Partition}, offset {message.Offset}");
-                         
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error occurred:{ex}");
-            }        
+        }
+        catch (ProduceException<Null, string> e)
+        {
+            Console.WriteLine($"Delivery failed: {e.Error.Reason}");
         }
     }
 }
 
-public class User
+static void StartConsumer(CancellationToken ct)
 {
-    public string Name { get; set; }
+    var config = new ConsumerConfig
+    {
+        BootstrapServers = "localhost:9092",
+        GroupId = "test-group",
+        AutoOffsetReset = AutoOffsetReset.Earliest,
+        EnableAutoCommit = true
+    };
+
+    using (var consumer = new ConsumerBuilder<Ignore, string>(config).Build())
+    {
+        consumer.Subscribe("outbox.event.user");
+
+        try
+        {
+            while (true)
+            {
+                var result = consumer.Consume();
+
+                Console.WriteLine($"Received message: Key: {result.Message.Key}, Value: {result.Message.Value}");
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            consumer.Close();
+        }
+    }
 }
 
-public class OutboxRecord
+
+void ConfigMongo()
 {
-    public ObjectId Id { get; set; }
-    public OutboxEventStatus EventStatus { get; set; }
-    public string EventType { get; set; }
-    public string EventData { get; set; }
+    var conventionPack = new ConventionPack { new CamelCaseElementNameConvention() };
+    ConventionRegistry.Register("camelCase", conventionPack, _ => true);
 }
