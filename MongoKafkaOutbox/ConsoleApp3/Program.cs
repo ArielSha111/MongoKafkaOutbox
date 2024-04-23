@@ -32,7 +32,7 @@ static async void StartProducer2(CancellationToken ct)
 
     };
 
-    using (var producer = new ProducerBuilder<Null, string>(config).Build())
+    using (var producer = new ProducerBuilder<string, string>(config).Build())
     {
         try
         {
@@ -42,7 +42,7 @@ static async void StartProducer2(CancellationToken ct)
             {
                 var message = $"Message {i}";
 
-                var deliveryReport = await producer.ProduceAsync(topic, new Message<Null, string> { Value = message });
+                var deliveryReport = await producer.ProduceAsync(topic, new Message<string, string> { Value = message });
 
                 Console.WriteLine($"Delivered message '{message}' to '{deliveryReport.TopicPartitionOffset}'");
             }
