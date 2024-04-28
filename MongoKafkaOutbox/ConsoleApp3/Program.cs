@@ -19,39 +19,43 @@ class Program
         var database = client.GetDatabase(dbName);
         var collection = database.GetCollection<BsonDocument>(collectionName);
 
-        var producerTask = ProduceMessage(bootstrapServers, topic, collection);
+        var producerTask = ProduceMessage(bootstrapServers, topic, client, collection);
         var consumerTask = ConsumeMessage(bootstrapServers, topic);
 
         await Task.WhenAll(producerTask, consumerTask);
     }
 
-    static async Task ProduceMessage(string bootstrapServers, string topic, IMongoCollection<BsonDocument> collection)
+    static async Task ProduceMessage(string bootstrapServers, string topic, MongoClient client, IMongoCollection<BsonDocument> collection)
     {
         var config = new ProducerConfig { BootstrapServers = bootstrapServers };
+        using var session = await client.StartSessionAsync();
 
-        using (var producer = new ProducerBuilder<Null, string>(config).Build())
+        using var producer = new ProducerBuilder<Null, string>(config).Build();
+
+        try
         {
-            try
+            while (true)
             {
-                while (true)
-                {
-                    var message = Console.ReadLine();
-              
-                    var doc = new BsonDocument
-                    {
-                        { "Topic", topic },
-                        { "Message", message }
-                    };
-                    await collection.InsertOneAsync(doc);
+                var message = Console.ReadLine();
 
-                    var result = await producer.ProduceAsync(topic, new Message<Null, string> { Value = message });
-                    Console.WriteLine($"Produced message '{message}' to topic {result.Topic}, partition {result.Partition}, offset {result.Offset}");
-                }
+                session.StartTransaction();
+
+                var doc = new BsonDocument
+                {
+                    { "Topic", topic },
+                    { "Message", message }
+                };
+
+                await collection.InsertOneAsync(doc);
+                var result = await producer.ProduceAsync(topic, new Message<Null, string> { Value = message });
+
+                await session.CommitTransactionAsync();
             }
-            catch (ProduceException<Null, string> ex)
-            {
-                Console.WriteLine($"Delivery failed: {ex.Error.Reason}");
-            }
+        }
+        catch (ProduceException<Null, string> ex)
+        {
+            await session.AbortTransactionAsync();
+            Console.WriteLine($"Delivery failed: {ex.Error.Reason}");
         }
     }
 
@@ -64,22 +68,21 @@ class Program
             AutoOffsetReset = AutoOffsetReset.Earliest
         };
 
-        using (var consumer = new ConsumerBuilder<Ignore, string>(config).Build())
-        {
-            consumer.Subscribe(topic);
 
-            try
+        using var consumer = new ConsumerBuilder<Ignore, string>(config).Build();
+        consumer.Subscribe(topic);
+
+        try
+        {
+            while (true)
             {
-                while (true)
-                {
-                    var message = consumer.Consume();
-                    Console.WriteLine($"Consumed message '{message.Message.Value}' from topic {message.Topic}, partition {message.Partition}, offset {message.Offset}");
-                }
+                var message = consumer.Consume();
+                Console.WriteLine($"Consumed message '{message.Message.Value}' from topic {message.Topic}, partition {message.Partition}, offset {message.Offset}");
             }
-            catch (ConsumeException ex)
-            {
-                Console.WriteLine($"Error occurred: {ex.Error.Reason}");
-            }
+        }
+        catch (ConsumeException ex)
+        {
+            Console.WriteLine($"Error occurred: {ex.Error.Reason}");
         }
     }
 }
