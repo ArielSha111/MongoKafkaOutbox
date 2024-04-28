@@ -64,7 +64,7 @@ class Program
         var config = new ConsumerConfig
         {
             BootstrapServers = bootstrapServers,
-            GroupId = "my_consumer_group",
+            GroupId = "1",
             AutoOffsetReset = AutoOffsetReset.Earliest
         };
 
