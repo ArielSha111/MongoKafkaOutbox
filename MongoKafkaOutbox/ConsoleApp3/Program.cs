@@ -1,92 +1,85 @@
-﻿using Confluent.Kafka;
-using MongoDB.Bson.Serialization.Conventions;
-using MongoDebeziumOutboxPattern;
+﻿using System;
+using System.Threading.Tasks;
+using Confluent.Kafka;
+using Confluent.Kafka.Admin;
+using MongoDB.Bson;
+using MongoDB.Driver;
 
-ConfigMongo();
-
-var cts = new CancellationTokenSource();
-
-//var producer2 = Task.Run(() => StartProducer2(cts.Token));
-var producer = Task.Run(() => StartProducer(cts.Token));
-var consumer = Task.Run(() => StartConsumer(cts.Token));
-
-Console.ReadKey();
-cts.Cancel();
-await Task.WhenAll(producer, consumer);
-
-static async Task StartProducer(CancellationToken ct)
+class Program
 {
-    var userService = new UserService();
-    while (!ct.IsCancellationRequested)
+    static async Task Main(string[] args)
     {
-        await userService.CreateRandomUser();
-        await Task.Delay(TimeSpan.FromSeconds(1));
+        const string bootstrapServers = "localhost:19092";
+        const string topic = "test_topic";
+        const string mongoConnectionString = "mongodb://localhost:27017";
+        const string dbName = "testdb";
+        const string collectionName = "outbox";
+
+        var client = new MongoClient(mongoConnectionString);
+        var database = client.GetDatabase(dbName);
+        var collection = database.GetCollection<BsonDocument>(collectionName);
+
+        var producerTask = ProduceMessage(bootstrapServers, topic, collection);
+        var consumerTask = ConsumeMessage(bootstrapServers, topic);
+
+        await Task.WhenAll(producerTask, consumerTask);
     }
-}
 
-static async void StartProducer2(CancellationToken ct)
-{
-    var config = new ProducerConfig
+    static async Task ProduceMessage(string bootstrapServers, string topic, IMongoCollection<BsonDocument> collection)
     {
-        BootstrapServers = "localhost:9092" // Change to your Kafka bootstrap servers
+        var config = new ProducerConfig { BootstrapServers = bootstrapServers };
 
-    };
-
-    using (var producer = new ProducerBuilder<string, string>(config).Build())
-    {
-        try
+        using (var producer = new ProducerBuilder<Null, string>(config).Build())
         {
-            var topic = "outbox.event.user"; // Change to the topic you want to produce to
-
-            for (int i = 0; i < 10; i++)
+            try
             {
-                var message = $"Message {i}";
+                while (true)
+                {
+                    var message = Console.ReadLine();
+              
+                    var doc = new BsonDocument
+                    {
+                        { "Topic", topic },
+                        { "Message", message }
+                    };
+                    await collection.InsertOneAsync(doc);
 
-                var deliveryReport = await producer.ProduceAsync(topic, new Message<string, string> { Value = message });
-
-                Console.WriteLine($"Delivered message '{message}' to '{deliveryReport.TopicPartitionOffset}'");
+                    var result = await producer.ProduceAsync(topic, new Message<Null, string> { Value = message });
+                    Console.WriteLine($"Produced message '{message}' to topic {result.Topic}, partition {result.Partition}, offset {result.Offset}");
+                }
+            }
+            catch (ProduceException<Null, string> ex)
+            {
+                Console.WriteLine($"Delivery failed: {ex.Error.Reason}");
             }
         }
-        catch (ProduceException<Null, string> e)
-        {
-            Console.WriteLine($"Delivery failed: {e.Error.Reason}");
-        }
     }
-}
 
-static void StartConsumer(CancellationToken ct)
-{
-    var config = new ConsumerConfig
+    static async Task ConsumeMessage(string bootstrapServers, string topic)
     {
-        BootstrapServers = "localhost:9092",
-        GroupId = "test-group",
-        AutoOffsetReset = AutoOffsetReset.Earliest,
-        EnableAutoCommit = true
-    };
-
-    using (var consumer = new ConsumerBuilder<Ignore, string>(config).Build())
-    {
-        consumer.Subscribe("outbox.event.user");
-
-        try
+        var config = new ConsumerConfig
         {
-            while (true)
-            {
-                var result = consumer.Consume();
+            BootstrapServers = bootstrapServers,
+            GroupId = "my_consumer_group",
+            AutoOffsetReset = AutoOffsetReset.Earliest
+        };
 
-                Console.WriteLine($"Received message: Key: {result.Message.Key}, Value: {result.Message.Value}");
+        using (var consumer = new ConsumerBuilder<Ignore, string>(config).Build())
+        {
+            consumer.Subscribe(topic);
+
+            try
+            {
+                while (true)
+                {
+                    var message = consumer.Consume();
+                    Console.WriteLine($"Consumed message '{message.Message.Value}' from topic {message.Topic}, partition {message.Partition}, offset {message.Offset}");
+                }
+            }
+            catch (ConsumeException ex)
+            {
+                Console.WriteLine($"Error occurred: {ex.Error.Reason}");
             }
         }
-        catch (OperationCanceledException)
-        {
-            consumer.Close();
-        }
     }
-}
-
-
-void ConfigMongo()
-{
-    var conventionPack = new ConventionPack { new CamelCaseElementNameConvention() };
-    ConventionRegistry.Register("camelCase", conventionPack, _ => true);
 }
