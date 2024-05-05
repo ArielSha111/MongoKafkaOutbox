@@ -15,36 +15,45 @@ class Program
 
     static async Task Main()
     {
-        string avroSchemaJson = @"{
-    ""type"": ""record"",
-    ""name"": ""MyObject"",
-    ""fields"": [
-        { ""name"": ""Field1"", ""type"": ""string"" },
-        { ""name"": ""Field2"", ""type"": ""int"" }
-    ]
-}";
+        //        string avroSchemaJson = @"{
+        //    ""type"": ""record"",
+        //    ""name"": ""Person"",
+        //    ""fields"": [
+        //        { ""name"": ""Age"", ""type"": ""int"" },
+        //        { ""name"": ""Name"", ""type"": ""string"" }
+        //    ]
+        //}";
 
-        var schema = (RecordSchema)Avro.Schema.Parse(avroSchemaJson);
+        //        var schema = (RecordSchema)Avro.Schema.Parse(avroSchemaJson);
 
-        var avroBytes = PrintAvroMessage(schema);
-        ReadAvroMessage(schema, avroBytes);
+        //        var avroBytes = PrintAvroMessageBytes(schema);
+        //        ReadAvroMessage(schema, avroBytes);
 
         StartProducer();
         StartConsumer();
         Console.ReadLine();
     }
-    private static byte[] PrintAvroMessage(RecordSchema schema)
+
+    private static string GetAvroMessageString(RecordSchema schema)
+    {
+        var avroBytes = PrintAvroMessageBytes(schema);
+        string avroString = BitConverter.ToString(avroBytes).Replace("-", "");
+        return avroString;
+    }
+
+    private static byte[] PrintAvroMessageBytes(RecordSchema schema)
     {
         var genericRecord = new GenericRecord(schema);
 
-        var myObject = new
+        var person = new Person
         {
-            Field1 = "Ariel",
-            Field2 = 123
+            Age = 1,
+            Name = "some name"
         };
 
-        genericRecord.Add("Field1", myObject.Field1);
-        genericRecord.Add("Field2", myObject.Field2);
+
+        genericRecord.Add("Age", person.Age);
+        genericRecord.Add("Name", person.Name);
 
         using var stream = new MemoryStream() ;
         var encoder = new BinaryEncoder(stream);
@@ -54,10 +63,9 @@ class Program
 
         byte[] avroBytes = stream.ToArray();
         string avroString = BitConverter.ToString(avroBytes).Replace("-", "");
-        Console.WriteLine(avroString);
         return avroBytes;
-        
     }
+
     private static void ReadAvroMessage(RecordSchema schema, byte[] avroBytes)
     {
         using var stream = new MemoryStream(avroBytes);
@@ -65,20 +73,18 @@ class Program
         var reader = new GenericDatumReader<GenericRecord>(schema, schema);
         var genericRecord = reader.Read(null, decoder);
 
-        // Extract values from the generic record
-        string field1 = (string)genericRecord.GetValue(0);
-        int field2 = (int)genericRecord.GetValue(1);
+        int age = (int)genericRecord.GetValue(0);
+        string name = (string)genericRecord.GetValue(1);
 
-        // Construct your object
-        var myObject = new 
+        var person = new Person
         {
-            Field1 = field1,
-            Field2 = field2
+            Age = 1,
+            Name = "some name"
         };
+
 
     }
 
-   
 
     private static async Task StartProducer()
     {
@@ -109,9 +115,11 @@ class Program
                 Name = "some name"
             };
 
-            Console.WriteLine($"Sending message with person");
+            var schema = (RecordSchema)Avro.Schema.Parse(person.Schema.ToString());
+            var message = GetAvroMessageString(schema);
 
             await producer.ProduceAsync(topicName, new Message<string, Person> { Value = person });
+            Console.WriteLine($"Sent message with person {message}");
 
             await Task.Delay(2000);
         }
@@ -136,8 +144,8 @@ class Program
         var schemaRegistry = new CachedSchemaRegistryClient(schemaRegistryConfig);
 
         var consumer =
-                new ConsumerBuilder<string, Person>(consumerConfig)
-                    .SetValueDeserializer(new AvroDeserializer<Person>(schemaRegistry).AsSyncOverAsync())
+                new ConsumerBuilder<string, byte[]>(consumerConfig)
+                    //.SetValueDeserializer(new AvroDeserializer<Person>(schemaRegistry).AsSyncOverAsync())
                     .SetErrorHandler((_, e) => Console.WriteLine($"Error: {e.Reason}"))
                     .Build();
 
@@ -149,8 +157,9 @@ class Program
             try
             {
                 var cr = consumer.Consume();
-                var message = cr.Message.Value;
-                Console.WriteLine($"Receiving message with person");
+                var avroBytes = cr.Message.Value;
+                string avroString = BitConverter.ToString(avroBytes).Replace("-", "");
+                Console.WriteLine($"Read message with person {avroString}");
             }
             catch (ConsumeException e)
             {
