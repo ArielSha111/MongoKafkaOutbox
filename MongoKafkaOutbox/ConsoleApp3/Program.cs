@@ -145,9 +145,16 @@ class Program
 
         var consumer =
                 new ConsumerBuilder<string, byte[]>(consumerConfig)
-                    //.SetValueDeserializer(new AvroDeserializer<Person>(schemaRegistry).AsSyncOverAsync())
                     .SetErrorHandler((_, e) => Console.WriteLine($"Error: {e.Reason}"))
                     .Build();
+
+
+        //var consumer =
+        //        new ConsumerBuilder<string, Person>(consumerConfig)
+        //            .SetValueDeserializer(new AvroDeserializer<Person>(schemaRegistry).AsSyncOverAsync())
+        //            .SetErrorHandler((_, e) => Console.WriteLine($"Error: {e.Reason}"))
+        //            .Build();
+
 
         consumer.Subscribe(topicName);
 
