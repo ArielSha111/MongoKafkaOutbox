@@ -3,6 +3,9 @@ using Confluent.SchemaRegistry;
 using Confluent.SchemaRegistry.Serdes;
 using ConsoleApp3;
 using Confluent.Kafka.SyncOverAsync;
+using Avro.Generic;
+using Avro.IO;
+using Avro;
 class Program
 {
     const string bootstrapServers = "localhost:19092";
@@ -11,11 +14,71 @@ class Program
     const string consumerGroup = "avro-cg-001";
 
     static async Task Main()
-    {   
+    {
+        string avroSchemaJson = @"{
+    ""type"": ""record"",
+    ""name"": ""MyObject"",
+    ""fields"": [
+        { ""name"": ""Field1"", ""type"": ""string"" },
+        { ""name"": ""Field2"", ""type"": ""int"" }
+    ]
+}";
+
+        var schema = (RecordSchema)Avro.Schema.Parse(avroSchemaJson);
+
+        var avroBytes = PrintAvroMessage(schema);
+        ReadAvroMessage(schema, avroBytes);
+
         StartProducer();
         StartConsumer();
         Console.ReadLine();
     }
+    private static byte[] PrintAvroMessage(RecordSchema schema)
+    {
+        var genericRecord = new GenericRecord(schema);
+
+        var myObject = new
+        {
+            Field1 = "Ariel",
+            Field2 = 123
+        };
+
+        genericRecord.Add("Field1", myObject.Field1);
+        genericRecord.Add("Field2", myObject.Field2);
+
+        using var stream = new MemoryStream() ;
+        var encoder = new BinaryEncoder(stream);
+        var writer = new GenericDatumWriter<GenericRecord>(schema);
+        writer.Write(genericRecord, encoder);
+        encoder.Flush();
+
+        byte[] avroBytes = stream.ToArray();
+        string avroString = BitConverter.ToString(avroBytes).Replace("-", "");
+        Console.WriteLine(avroString);
+        return avroBytes;
+        
+    }
+    private static void ReadAvroMessage(RecordSchema schema, byte[] avroBytes)
+    {
+        using var stream = new MemoryStream(avroBytes);
+        var decoder = new BinaryDecoder(stream);
+        var reader = new GenericDatumReader<GenericRecord>(schema, schema);
+        var genericRecord = reader.Read(null, decoder);
+
+        // Extract values from the generic record
+        string field1 = (string)genericRecord.GetValue(0);
+        int field2 = (int)genericRecord.GetValue(1);
+
+        // Construct your object
+        var myObject = new 
+        {
+            Field1 = field1,
+            Field2 = field2
+        };
+
+    }
+
+   
 
     private static async Task StartProducer()
     {
@@ -71,7 +134,6 @@ class Program
         };
 
         var schemaRegistry = new CachedSchemaRegistryClient(schemaRegistryConfig);
-
 
         var consumer =
                 new ConsumerBuilder<string, Person>(consumerConfig)
