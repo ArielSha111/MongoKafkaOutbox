@@ -1,6 +1,5 @@
-﻿namespace Model.Http
+﻿namespace Model.Http;
+
+public interface IHttpManager
 {
-    public interface IHttpManager
-    {
-    }
 }

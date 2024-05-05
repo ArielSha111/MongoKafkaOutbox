@@ -1,88 +1,102 @@
-﻿using System;
-using System.Threading.Tasks;
-using Confluent.Kafka;
-using Confluent.Kafka.Admin;
-using MongoDB.Bson;
-using MongoDB.Driver;
-
+﻿using Confluent.Kafka;
+using Confluent.SchemaRegistry;
+using Confluent.SchemaRegistry.Serdes;
+using ConsoleApp3;
+using Confluent.Kafka.SyncOverAsync;
 class Program
 {
-    static async Task Main(string[] args)
-    {
-        const string bootstrapServers = "localhost:19092";
-        const string topic = "test_topic";
-        const string mongoConnectionString = "mongodb://localhost:27017";
-        const string dbName = "testdb";
-        const string collectionName = "outbox";
+    const string bootstrapServers = "localhost:19092";
+    const string schemaRegistryUrl = "http://localhost:8081";
+    const string topicName = "avro-topic";
+    const string consumerGroup = "avro-cg-001";
 
-        var client = new MongoClient(mongoConnectionString);
-        var database = client.GetDatabase(dbName);
-        var collection = database.GetCollection<BsonDocument>(collectionName);
-
-        var producerTask = ProduceMessage(bootstrapServers, topic, client, collection);
-        var consumerTask = ConsumeMessage(bootstrapServers, topic);
-
-        await Task.WhenAll(producerTask, consumerTask);
+    static async Task Main()
+    {   
+        StartProducer();
+        StartConsumer();
+        Console.ReadLine();
     }
 
-    static async Task ProduceMessage(string bootstrapServers, string topic, MongoClient client, IMongoCollection<BsonDocument> collection)
+    private static async Task StartProducer()
     {
-        var config = new ProducerConfig { BootstrapServers = bootstrapServers };
-        using var session = await client.StartSessionAsync();
-
-        using var producer = new ProducerBuilder<Null, string>(config).Build();
-
-        try
+       var producerConfig = new ProducerConfig
         {
-            while (true)
-            {
-                var message = Console.ReadLine();
-
-                session.StartTransaction();
-
-                var doc = new BsonDocument
-                {
-                    { "Topic", topic },
-                    { "Message", message }
-                };
-
-                await collection.InsertOneAsync(doc);
-                var result = await producer.ProduceAsync(topic, new Message<Null, string> { Value = message });
-
-                await session.CommitTransactionAsync();
-            }
-        }
-        catch (ProduceException<Null, string> ex)
-        {
-            await session.AbortTransactionAsync();
-            Console.WriteLine($"Delivery failed: {ex.Error.Reason}");
-        }
-    }
-
-    static async Task ConsumeMessage(string bootstrapServers, string topic)
-    {
-        var config = new ConsumerConfig
-        {
-            BootstrapServers = bootstrapServers,
-            GroupId = "1",
-            AutoOffsetReset = AutoOffsetReset.Earliest
+            BootstrapServers = bootstrapServers
         };
 
-
-        using var consumer = new ConsumerBuilder<Ignore, string>(config).Build();
-        consumer.Subscribe(topic);
-
-        try
+        var schemaRegistryConfig = new SchemaRegistryConfig
         {
-            while (true)
+            Url = schemaRegistryUrl
+        };
+
+        var schemaRegistry = new CachedSchemaRegistryClient(schemaRegistryConfig);
+
+
+        var producer =
+             new ProducerBuilder<string, Person>(producerConfig)
+                .SetValueSerializer(new AvroSerializer<Person>(schemaRegistry))
+                .Build();
+
+
+        while (true) 
+        {
+            var person = new Person
             {
-                var message = consumer.Consume();
-                Console.WriteLine($"Consumed message '{message.Message.Value}' from topic {message.Topic}, partition {message.Partition}, offset {message.Offset}");
+                Age = 1,
+                Name = "some name"
+            };
+
+            Console.WriteLine($"Sending message with person");
+
+            await producer.ProduceAsync(topicName, new Message<string, Person> { Value = person });
+
+            await Task.Delay(2000);
+        }
+
+        producer.Dispose();
+        schemaRegistry.Dispose();
+    }
+
+    private static Task StartConsumer()
+    {
+        var consumerConfig = new ConsumerConfig
+        {
+            BootstrapServers = bootstrapServers,
+            GroupId = consumerGroup
+        };
+
+        var schemaRegistryConfig = new SchemaRegistryConfig
+        {
+            Url = schemaRegistryUrl
+        };
+
+        var schemaRegistry = new CachedSchemaRegistryClient(schemaRegistryConfig);
+
+
+        var consumer =
+                new ConsumerBuilder<string, Person>(consumerConfig)
+                    .SetValueDeserializer(new AvroDeserializer<Person>(schemaRegistry).AsSyncOverAsync())
+                    .SetErrorHandler((_, e) => Console.WriteLine($"Error: {e.Reason}"))
+                    .Build();
+
+        consumer.Subscribe(topicName);
+
+
+        while (true)
+        {
+            try
+            {
+                var cr = consumer.Consume();
+                var message = cr.Message.Value;
+                Console.WriteLine($"Receiving message with person");
+            }
+            catch (ConsumeException e)
+            {
+                Console.WriteLine(e);
             }
         }
-        catch (ConsumeException ex)
-        {
-            Console.WriteLine($"Error occurred: {ex.Error.Reason}");
-        }
+
+        consumer.Close();
+        schemaRegistry.Dispose();
     }
 }

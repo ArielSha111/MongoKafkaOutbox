@@ -1,7 +1,6 @@
-﻿namespace Model.DB
+﻿namespace Model.DB;
+
+public interface IDbManager
 {
-    public interface IDbManager
-    {
-        public object GetStuffFromDB(int num);
-    }
+    public object GetStuffFromDB(int num);
 }

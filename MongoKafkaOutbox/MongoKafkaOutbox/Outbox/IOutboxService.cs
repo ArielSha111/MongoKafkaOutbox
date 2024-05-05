@@ -1,6 +1,4 @@
-﻿using MongoDB.Bson;
-
-namespace MongoKafkaOutbox.Outbox;
+﻿namespace MongoKafkaOutbox.Outbox;
 
 public interface IOutboxService<T>
 {     
