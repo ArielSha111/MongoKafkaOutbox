@@ -3,157 +3,81 @@ using Confluent.SchemaRegistry;
 using Confluent.SchemaRegistry.Serdes;
 using ConsoleApp3;
 using Confluent.Kafka.SyncOverAsync;
-using Avro.Generic;
-using Avro.IO;
-using Avro;
+
 class Program
 {
     const string bootstrapServers = "localhost:19092";
     const string schemaRegistryUrl = "http://localhost:8081";
-    const string topicName = "avro-topic";
-    const string consumerGroup = "avro-cg-001";
+    const string topicName = "my-topic4";
+    const string consumerGroup = "my_consumer_group";
 
     static async Task Main()
     {
-        //        string avroSchemaJson = @"{
-        //    ""type"": ""record"",
-        //    ""name"": ""Person"",
-        //    ""fields"": [
-        //        { ""name"": ""Age"", ""type"": ""int"" },
-        //        { ""name"": ""Name"", ""type"": ""string"" }
-        //    ]
-        //}";
+        var schemaRegistryConfig = new SchemaRegistryConfig
+        {
+            Url = schemaRegistryUrl
+        };
 
-        //        var schema = (RecordSchema)Avro.Schema.Parse(avroSchemaJson);
+        using var schemaRegistry = new CachedSchemaRegistryClient(schemaRegistryConfig);
 
-        //        var avroBytes = PrintAvroMessageBytes(schema);
-        //        ReadAvroMessage(schema, avroBytes);
 
-        StartProducer();
-        StartConsumer();
+        var a = StartProducer(schemaRegistry);
+        var b = StartConsumer(schemaRegistry);
+        Task.WaitAll(b);
+
         Console.ReadLine();
     }
 
-    private static string GetAvroMessageString(RecordSchema schema)
+    private static async Task StartProducer(CachedSchemaRegistryClient schemaRegistry)
     {
-        var avroBytes = PrintAvroMessageBytes(schema);
-        string avroString = BitConverter.ToString(avroBytes).Replace("-", "");
-        return avroString;
-    }
-
-    private static byte[] PrintAvroMessageBytes(RecordSchema schema)
-    {
-        var genericRecord = new GenericRecord(schema);
-
-        var person = new Person
-        {
-            Age = 1,
-            Name = "some name"
-        };
-
-
-        genericRecord.Add("Age", person.Age);
-        genericRecord.Add("Name", person.Name);
-
-        using var stream = new MemoryStream() ;
-        var encoder = new BinaryEncoder(stream);
-        var writer = new GenericDatumWriter<GenericRecord>(schema);
-        writer.Write(genericRecord, encoder);
-        encoder.Flush();
-
-        byte[] avroBytes = stream.ToArray();
-        string avroString = BitConverter.ToString(avroBytes).Replace("-", "");
-        return avroBytes;
-    }
-
-    private static void ReadAvroMessage(RecordSchema schema, byte[] avroBytes)
-    {
-        using var stream = new MemoryStream(avroBytes);
-        var decoder = new BinaryDecoder(stream);
-        var reader = new GenericDatumReader<GenericRecord>(schema, schema);
-        var genericRecord = reader.Read(null, decoder);
-
-        int age = (int)genericRecord.GetValue(0);
-        string name = (string)genericRecord.GetValue(1);
-
-        var person = new Person
-        {
-            Age = 1,
-            Name = "some name"
-        };
-
-
-    }
-
-
-    private static async Task StartProducer()
-    {
-       var producerConfig = new ProducerConfig
+        var producerConfig = new ProducerConfig
         {
             BootstrapServers = bootstrapServers
         };
 
-        var schemaRegistryConfig = new SchemaRegistryConfig
+
+        var serializer = new AvroSerializer<Person>(schemaRegistry);
+
+        using var producer = new ProducerBuilder<Null, byte[]>(producerConfig).Build();
+        var serializationContext = new SerializationContext(MessageComponentType.Value, topicName);
+        while (true)
         {
-            Url = schemaRegistryUrl
-        };
-
-        var schemaRegistry = new CachedSchemaRegistryClient(schemaRegistryConfig);
-
-
-        var producer =
-             new ProducerBuilder<string, Person>(producerConfig)
-                .SetValueSerializer(new AvroSerializer<Person>(schemaRegistry))
-                .Build();
-
-
-        while (true) 
-        {
-            var person = new Person
+            try
             {
-                Age = 1,
-                Name = "some name"
-            };
 
-            var schema = (RecordSchema)Avro.Schema.Parse(person.Schema.ToString());
-            var message = GetAvroMessageString(schema);
+                var person = new Person
+                {
+                    Age = 13,
+                    Name = Guid.NewGuid().ToString(),
+                };
 
-            await producer.ProduceAsync(topicName, new Message<string, Person> { Value = person });
-            Console.WriteLine($"Sent message with person {message}");
-
-            await Task.Delay(2000);
+                var serializedBytes = await serializer.SerializeAsync(person, serializationContext);
+                var result = await producer.ProduceAsync(topicName, new Message<Null, byte[]> { Value = serializedBytes });
+                Console.WriteLine($"produce message with person: {person.Name}, {BitConverter.ToString(result.Message.Value).Replace("-", "")}");
+                await Task.Delay(100);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
         }
 
-        producer.Dispose();
-        schemaRegistry.Dispose();
     }
 
-    private static Task StartConsumer()
+    private static async Task StartConsumer(CachedSchemaRegistryClient schemaRegistry)
     {
         var consumerConfig = new ConsumerConfig
         {
             BootstrapServers = bootstrapServers,
-            GroupId = consumerGroup
+            GroupId = consumerGroup,
+            AutoOffsetReset = AutoOffsetReset.Earliest
         };
 
-        var schemaRegistryConfig = new SchemaRegistryConfig
-        {
-            Url = schemaRegistryUrl
-        };
 
-        var schemaRegistry = new CachedSchemaRegistryClient(schemaRegistryConfig);
-
-        var consumer =
-                new ConsumerBuilder<string, byte[]>(consumerConfig)
+        using var consumer = new ConsumerBuilder<Null, Person>(consumerConfig)
+                    .SetValueDeserializer(new AvroDeserializer<Person>(schemaRegistry).AsSyncOverAsync())
                     .SetErrorHandler((_, e) => Console.WriteLine($"Error: {e.Reason}"))
                     .Build();
-
-
-        //var consumer =
-        //        new ConsumerBuilder<string, Person>(consumerConfig)
-        //            .SetValueDeserializer(new AvroDeserializer<Person>(schemaRegistry).AsSyncOverAsync())
-        //            .SetErrorHandler((_, e) => Console.WriteLine($"Error: {e.Reason}"))
-        //            .Build();
 
 
         consumer.Subscribe(topicName);
@@ -164,17 +88,13 @@ class Program
             try
             {
                 var cr = consumer.Consume();
-                var avroBytes = cr.Message.Value;
-                string avroString = BitConverter.ToString(avroBytes).Replace("-", "");
-                Console.WriteLine($"Read message with person {avroString}");
+                var person = cr.Message.Value;
+                Console.WriteLine($"Consumed message with person: {person.Name}");
             }
-            catch (ConsumeException e)
+            catch (Exception e)
             {
                 Console.WriteLine(e);
             }
         }
-
-        consumer.Close();
-        schemaRegistry.Dispose();
     }
 }

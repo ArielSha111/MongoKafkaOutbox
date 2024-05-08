@@ -1,8 +1,9 @@
 using Avro;
+using Avro.Specific;
 
 namespace ConsoleApp3;
 
-public partial class Person : Avro.Specific.ISpecificRecord
+public partial class Person : ISpecificRecord
 {
     public static Schema _SCHEMA = Schema.Parse(
         "{" +
