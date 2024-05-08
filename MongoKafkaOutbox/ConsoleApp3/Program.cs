@@ -11,7 +11,7 @@ class Program
     const string topicName = "my-topic4";
     const string consumerGroup = "my_consumer_group";
 
-    static async Task Main()
+    public static async Task Main()
     {
         var schemaRegistryConfig = new SchemaRegistryConfig
         {
@@ -21,9 +21,8 @@ class Program
         using var schemaRegistry = new CachedSchemaRegistryClient(schemaRegistryConfig);
 
 
-        var a = StartProducer(schemaRegistry);
-        var b = StartConsumer(schemaRegistry);
-        Task.WaitAll(b);
+        StartProducer(schemaRegistry);
+        StartConsumer(schemaRegistry);
 
         Console.ReadLine();
     }
