@@ -8,13 +8,12 @@ internal class TestClass(IGenericOutboxManager<Person> genericOutboxManager)
     {
         using var session = await genericOutboxManager.StartOutboxSessionAsync();
         session.StartTransaction();
-
         try
         {
-            await genericOutboxManager.Collection.InsertOneAsync(new());
+            await genericOutboxManager.Collection.InsertOneAsync(new Person());
+            await genericOutboxManager.PublishMessage(new Event());
             await session.CommitTransactionAsync();
         }
-
         catch (Exception)
         {
             await session.AbortTransactionAsync();
