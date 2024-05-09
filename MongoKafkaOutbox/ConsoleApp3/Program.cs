@@ -5,8 +5,6 @@ using ConsoleApp3;
 using Confluent.Kafka.SyncOverAsync;
 using MongoDB.Bson;
 using MongoDB.Driver;
-using Avro;
-using static Confluent.Kafka.ConfigPropertyNames;
 
 class Program
 {

@@ -1,0 +1,1 @@
+﻿i need a way to get some kind of session, this sessions shopuld use the real mongo session, in this session object i need only three methods all of which will work with the real session object
