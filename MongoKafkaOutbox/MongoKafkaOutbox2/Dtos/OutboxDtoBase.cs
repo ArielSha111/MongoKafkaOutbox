@@ -1,6 +1,6 @@
 ﻿namespace MongoKafkaOutbox2.Dtos;
 
-internal class OutboxDtoBase<T>
+public class OutboxDtoBase<T>
 {
     internal Guid Id { get; set; }
     internal DateTime DateTime { get; set; }

@@ -5,11 +5,11 @@ using Confluent.SchemaRegistry.Serdes;
 
 namespace MongoKafkaOutbox2.Serialization.Avro;
 
-public class DefaultAvroSerializationManager(CachedSchemaRegistryClient schemaRegistry) : IAvroSerializationManager
+internal class DefaultAvroSerializationManager(CachedSchemaRegistryClient schemaRegistry, string kafkaTopicName) : IAvroSerializationManager
 {
     public async Task<byte[]> GetAsAvroAsync<T>(T message)
     {
-        var serializationContext = new SerializationContext(MessageComponentType.Value, "topic_name");
+        var serializationContext = new SerializationContext(MessageComponentType.Value, kafkaTopicName);
         var serializer = new AvroSerializer<T>(schemaRegistry);
         var serializedBytes = await serializer.SerializeAsync(message, serializationContext);
         return serializedBytes;

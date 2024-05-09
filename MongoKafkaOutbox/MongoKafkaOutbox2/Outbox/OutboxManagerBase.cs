@@ -1,6 +1,7 @@
 ﻿using MongoDB.Driver;
 using MongoKafkaOutbox2.Serialization.Avro;
 using MongoKafkaOutbox2.Dtos;
+using MongoKafkaOutbox2.MongoSessionHandlers;
 
 namespace MongoKafkaOutbox2.Outbox;
 
@@ -11,17 +12,16 @@ public abstract class OutboxManagerBase : IOutboxManager
     private IAvroSerializationManager _avroSerializationManager;
     private IMongoCollection<OutboxAvroDto> _outboxCollection { get; set; }
 
-    public OutboxManagerBase(IMongoClient mongoClient,  IAvroSerializationManager avroSerializationManager)
+    public OutboxManagerBase(IMongoClient mongoClient,  IAvroSerializationManager avroSerializationManager, string outboxCollectionName, string dbName)
     {
-        _database = mongoClient.GetDatabase("");
-        _outboxCollection = _database.GetCollection<OutboxAvroDto>("Outbox");
+        _database = mongoClient.GetDatabase(dbName);
+        _outboxCollection = _database.GetCollection<OutboxAvroDto>(outboxCollectionName);
         _avroSerializationManager = avroSerializationManager;
     }
 
     public async Task PublishMessage<T>(T message)
     {
         var avroMessage = await _avroSerializationManager.GetAsAvroAsync(message);
-
 
         await _outboxCollection.InsertOneAsync
             (
@@ -34,7 +34,7 @@ public abstract class OutboxManagerBase : IOutboxManager
             );
     }
 
-    public async Task<IOutboxClientSessionHandle> StartSessionAsync()
+    public async Task<IOutboxClientSessionHandle> StartOutboxSessionAsync()
     {
         var clientSessionHandle = await _mongoClient.StartSessionAsync();
         return new OutboxClientSessionHandle(clientSessionHandle);

@@ -1,8 +1,8 @@
 ﻿using MongoDB.Driver;
 
-namespace MongoKafkaOutbox2.Outbox;
+namespace MongoKafkaOutbox2.MongoSessionHandlers;
 
-public class OutboxClientSessionHandle(IClientSessionHandle clientSessionHandle) : IOutboxClientSessionHandle, IDisposable 
+internal class OutboxClientSessionHandle(IClientSessionHandle clientSessionHandle) : IOutboxClientSessionHandle
 {
     public void StartTransaction(TransactionOptions transactionOptions = null)
     {

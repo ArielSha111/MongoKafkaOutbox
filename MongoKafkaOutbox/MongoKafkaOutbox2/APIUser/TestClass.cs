@@ -1,19 +1,21 @@
-﻿namespace MongoKafkaOutbox2.APIUser;
+﻿using MongoKafkaOutbox2.Outbox.Default;
 
-internal class TestClass(IMyOutboxManager baseOutboxManager)
+namespace MongoKafkaOutbox2.APIUser;
+
+internal class TestClass(IGenericOutboxManager<Person> genericOutboxManager)
 {
     public async Task SomeMethod()
     {
-        using var session = await baseOutboxManager.StartSessionAsync();
+        using var session = await genericOutboxManager.StartOutboxSessionAsync();
         session.StartTransaction();
 
         try
         {
-            await baseOutboxManager.GeneralCollection.InsertOneAsync(new());
+            await genericOutboxManager.Collection.InsertOneAsync(new());
             await session.CommitTransactionAsync();
         }
 
-        catch (Exception ex)
+        catch (Exception)
         {
             await session.AbortTransactionAsync();
         }
