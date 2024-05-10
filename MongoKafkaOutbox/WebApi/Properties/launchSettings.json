@@ -9,7 +9,7 @@
     }
   },
   "profiles": {
-    "DotNet8ServiceTemplate": {
+    "MongoKafkaOutbox": {
       "commandName": "Project",
       "dotnetRunMessages": true,
       "launchBrowser": true,
