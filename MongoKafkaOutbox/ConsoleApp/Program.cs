@@ -1,99 +1,159 @@
 ﻿using Confluent.Kafka;
+using Confluent.SchemaRegistry;
+using Confluent.SchemaRegistry.Serdes;
+using ConsoleApp3;
+using Confluent.Kafka.SyncOverAsync;
 using MongoDB.Bson;
 using MongoDB.Driver;
 
-
 class Program
 {
-    static async Task Main(string[] args)
+    const string bootstrapServers = "localhost:19092";
+    const string schemaRegistryUrl = "http://localhost:8081";
+    const string topicName = "my-topic4";
+    const string consumerGroup = "my_consumer_group";
+    const string mongoConnectionString = "mongodb://localhost:28017";
+
+
+    public static async Task Main()
     {
-        string bootstrapServers = "localhost:9092";
-        string topic = "my_topic";
+        var schemaRegistryConfig = new SchemaRegistryConfig
+        {
+            Url = schemaRegistryUrl
+        };
 
-        // MongoDB connection string
-        string mongoConnectionString = "mongodb://localhost:27017";
+        using var schemaRegistry = new CachedSchemaRegistryClient(schemaRegistryConfig);
 
-        // Start producer, consumer, and message storage asynchronously
-        var producerTask = ProduceMessage(bootstrapServers, topic);
-        var consumerTask = ConsumeMessage(bootstrapServers, topic, mongoConnectionString);
 
-        // Wait for tasks to finish
-        await Task.WhenAll(producerTask, consumerTask);
+        StartProducer(schemaRegistry);
+        StartConsumer(schemaRegistry);
+
+        Console.ReadLine();
     }
 
-    static async Task ProduceMessage(string bootstrapServers, string topic)
+    private static async Task StartProducer(CachedSchemaRegistryClient schemaRegistry)
     {
-        var config = new ProducerConfig
+        var mongoClient = new MongoClient(mongoConnectionString);
+        var database = mongoClient.GetDatabase("KafkaOutbox");
+        var mainCollection = database.GetCollection<Person>("MainCollection");
+        var outboxCollection = database.GetCollection<BsonDocument>("Outbox");
+
+
+        var producerConfig = new ProducerConfig
         {
             BootstrapServers = bootstrapServers
         };
 
-        using (var producer = new ProducerBuilder<Null, string>(config).Build())
+
+        var serializer = new AvroSerializer<Person>(schemaRegistry);
+
+        using var producer = new ProducerBuilder<Null, byte[]>(producerConfig).Build();
+        var serializationContext = new SerializationContext(MessageComponentType.Value, topicName);
+        while (true)
         {
             try
             {
-                while (true)
+
+                var person = new Person
                 {
-                    var message = Console.ReadLine();
-                    var result = await producer.ProduceAsync(topic, new Message<Null, string> { Value = message });
-                    Console.WriteLine($"Produced message '{message}' to topic {result.Topic}, partition {result.Partition}, offset {result.Offset}");
+                    Age = 13,
+                    Name = Guid.NewGuid().ToString(),
+                };
+
+
+                var serializedBytes = await serializer.SerializeAsync(person, serializationContext);
+
+                // Storing message in MongoDB
+                var doc = new BsonDocument
+                {
+                    { "Topic", topicName},
+                    { "serializedBytes", serializedBytes },
+                    { "DateTime", DateTime.Now}
+                };
+
+                using var session = await mongoClient.StartSessionAsync();
+                
+                session.StartTransaction();
+                try
+                {
+                    await mainCollection.InsertOneAsync(person);
+                    await outboxCollection.InsertOneAsync(doc);
+                    // Commit the transaction
+                    await session.CommitTransactionAsync();
+
+                    Console.WriteLine("Transaction committed successfully.");
                 }
+
+                catch (Exception ex)
+                {             
+                    await session.AbortTransactionAsync();
+                    Console.WriteLine("Transaction aborted due to an error: " + ex.Message);
+                }
+
+
+
+                // Retrieve the document from the collection
+                var sort = Builders<BsonDocument>.Sort.Descending("DateTime");
+
+                // Retrieve the latest document from the collection
+                var latestDocument = await outboxCollection.Find(new BsonDocument()).Sort(sort).FirstOrDefaultAsync();
+
+
+                if (latestDocument != null)
+                {
+                    Console.WriteLine("Document found:");
+                    Console.WriteLine(latestDocument);
+
+                    var serializedBytesFromMongo = latestDocument.GetValue("serializedBytes").AsByteArray;
+                    var result = await producer.ProduceAsync(topicName, new Message<Null, byte[]> { Value = serializedBytesFromMongo });
+                    Console.WriteLine($"produce message with person: {person.Name}, {BitConverter.ToString(result.Message.Value).Replace("-", "")}");
+                }
+                else
+                {
+                    Console.WriteLine("Document not found.");
+                }
+
+                
+                await Task.Delay(1000);
             }
-            catch (ProduceException<Null, string> ex)
+            catch (Exception e)
             {
-                Console.WriteLine($"Delivery failed: {ex.Error.Reason}");
+                Console.WriteLine(e);
             }
         }
+
     }
 
-    static async Task ConsumeMessage(string bootstrapServers, string topic, string mongoConnectionString)
+    private static async Task StartConsumer(CachedSchemaRegistryClient schemaRegistry)
     {
-        var config = new ConsumerConfig
+        var consumerConfig = new ConsumerConfig
         {
             BootstrapServers = bootstrapServers,
-            GroupId = "my_consumer_group",
+            GroupId = consumerGroup,
             AutoOffsetReset = AutoOffsetReset.Earliest
         };
 
-        var client = new MongoClient(mongoConnectionString);
-        var database = client.GetDatabase("KafkaOutbox");
-        var collection = database.GetCollection<BsonDocument>("Test1");
 
-        using (var consumer = new ConsumerBuilder<Ignore, string>(config).Build())
+        using var consumer = new ConsumerBuilder<Null, Person>(consumerConfig)
+                    .SetValueDeserializer(new AvroDeserializer<Person>(schemaRegistry).AsSyncOverAsync())
+                    .SetErrorHandler((_, e) => Console.WriteLine($"Error: {e.Reason}"))
+                    .Build();
+
+
+        consumer.Subscribe(topicName);
+
+
+        while (true)
         {
-            consumer.Subscribe(topic);
-
             try
             {
-                while (true)
-                {
-                    var message = consumer.Consume();
-                    Console.WriteLine($"Consumed message '{message.Message.Value}' from topic {message.Topic}, partition {message.Partition}, offset {message.Offset}");
-
-                    // Storing message in MongoDB
-                    var doc = new BsonDocument
-                    {
-                        { "Topic", message.Topic },
-                        { "Partition", message.Partition.Value },
-                        { "Offset", message.Offset.Value },
-                        { "Message", message.Message.Value }
-                    };
-
-                    try
-                    {
-                        await collection.InsertOneAsync(doc);
-                    }
-                    catch (Exception ex)
-                    {
-                        // Rollback consumption by seeking back to the last committed offset
-                        consumer.Seek(new TopicPartitionOffset(message.TopicPartition, message.Offset));
-                        Console.WriteLine($"Failed to store message in MongoDB. Rolling back consumption to offset {message.Offset}");
-                    }
-                }
+                var cr = consumer.Consume();
+                var person = cr.Message.Value;
+                Console.WriteLine($"Consumed message with person: {person.Name}");
             }
-            catch (ConsumeException ex)
+            catch (Exception e)
             {
-                Console.WriteLine($"Error occurred: {ex.Error.Reason}");
+                Console.WriteLine(e);
             }
         }
     }

@@ -1,15 +1,14 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 
-namespace EasyCachingAOP.Tests
+namespace UnitTests;
+
+[TestClass]
+public class CachingInterceptorTests
 {
-    [TestClass]
-    public class CachingInterceptorTests
+    [TestMethod]
+    public void Intercept_CacheHit_ReturnsCachedValue()
     {
-        [TestMethod]
-        public void Intercept_CacheHit_ReturnsCachedValue()
-        {
-           
-        }
-     }
+
+    }
 }

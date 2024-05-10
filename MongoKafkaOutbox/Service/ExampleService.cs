@@ -1,13 +1,12 @@
 ﻿using Model.DB;
 
 namespace Service;
-public class ExampleService(IDbManager _dbClient) : IExampleService
+
+public class ExampleService(IDbManagerWithOutBox _dbClient) : IExampleService
 {
     public async Task<IEnumerable<int>> RunExample()
     {
-        _dbClient.GetStuffFromDB(1);
-        _dbClient.GetStuffFromDB(1);
-        _dbClient.GetStuffFromDB(2);
+        await _dbClient.PutStuffInDbWithOutbox();
         return new List<int>();
     }
 }

@@ -7,15 +7,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Confluent.SchemaRegistry" Version="2.1.0" />
-    <PackageReference Include="Confluent.SchemaRegistry.Serdes.Avro" Version="2.1.0" />
-    <PackageReference Include="Kenso.Data.Kafka" Version="1.0.2" />
-    <PackageReference Include="MassTransit.MongoDb" Version="8.2.1" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Serlizers\" />
-  </ItemGroup>
+	<PackageReference Include="Confluent.Kafka" Version="2.3.0" />
+	<PackageReference Include="Confluent.SchemaRegistry" Version="2.3.0" />
+	<PackageReference Include="Confluent.SchemaRegistry.Serdes.Avro" Version="2.3.0" />
+	<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.0" />
+	<PackageReference Include="MongoDB.Driver" Version="2.19.2" />
+	<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+	</ItemGroup>
 
 </Project>
