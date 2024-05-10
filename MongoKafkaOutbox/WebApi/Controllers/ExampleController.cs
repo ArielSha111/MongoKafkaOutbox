@@ -8,9 +8,9 @@ namespace WebApi.Controllers;
 public class ExampleController(ILogger<ExampleController> _logger, IExampleService _exampleService) : ControllerBase
 {
     [HttpGet("RunExample")]
-    public async Task<IEnumerable<int>> RunExample()
+    public async Task<ActionResult> RunExample()
     {
         var res = await _exampleService.RunExample();
-        return res;
+        return Ok(res);
     }
 }

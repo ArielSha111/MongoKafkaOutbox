@@ -1,6 +1,10 @@
 ﻿using Service;
-using Model.Http;
 using Model.DB;
+using Contracts;
+using MongoKafkaOutbox.DI;
+using MongoDB.Bson;
+using MongoDB.Driver;
+using MongoKafkaOutbox.Outbox.Default;
 
 public static class Startup
 {
@@ -10,14 +14,22 @@ public static class Startup
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen();
         services.AddSingleton(Configuration);
-        SetDiRegistration(services, Configuration);
+        SetDiRegistration(services);
     }
 
-    private static void SetDiRegistration(IServiceCollection services, IConfiguration Configuration)
+    private static void SetDiRegistration(IServiceCollection services)
     {
         services.AddSingleton<IExampleService, ExampleService>();
-        services.AddSingleton<IHttpManager, HttpManager>();
-        services.AddSingleton<IDbManager, DbManager>();
+        services.AddSingleton<IDbManagerWithOutBox, DbManagerWithOutbox>();
+        services.SetOutboxServicesWithDefaults<Person>(new()
+        {
+            MongoConnectionString = "mongodb://localhost:28017",
+            MongoDBName = "KafkaOutbox",
+            MongoCollectionNames = new Dictionary<string, string>() { { "MainCollection", "MainCollection" } },
+            OutboxCollectionName = "Outbox",
+            schemaRegistryConfigUrl = "http://localhost:8081",
+            kafkaTopicName = "MongoKafkaOutboxTopic1",
+        }); 
     }
 }
 
