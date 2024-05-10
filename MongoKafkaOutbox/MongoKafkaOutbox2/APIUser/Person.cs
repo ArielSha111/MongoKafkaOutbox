@@ -1,5 +1,3 @@
-using MongoKafkaOutbox2.Records.Avro;
-
 namespace MongoKafkaOutbox2.APIUser;
 
 public partial class Person

@@ -1,7 +1,5 @@
 ﻿using MongoDB.Driver;
 using MongoKafkaOutbox2.Serialization.Avro;
-using MongoKafkaOutbox2.Dtos;
-using MongoKafkaOutbox2.MongoSessionHandlers;
 using Avro.Specific;
 
 namespace MongoKafkaOutbox2.Outbox;
@@ -35,9 +33,8 @@ public abstract class OutboxManagerBase : IOutboxManager
             );
     }
 
-    public async Task<IOutboxClientSessionHandle> StartOutboxSessionAsync()
+    public async Task<IClientSessionHandle> StartOutboxSessionAsync()
     {
-        var clientSessionHandle = await _mongoClient.StartSessionAsync();
-        return new OutboxClientSessionHandle(clientSessionHandle);
+        return await _mongoClient.StartSessionAsync();
     }
 }

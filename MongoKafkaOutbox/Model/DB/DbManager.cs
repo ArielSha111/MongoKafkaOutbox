@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Configuration;
 
 namespace Model.DB;
+
 public class DbManager : IDbManager
 {
     private readonly string _connectionString;

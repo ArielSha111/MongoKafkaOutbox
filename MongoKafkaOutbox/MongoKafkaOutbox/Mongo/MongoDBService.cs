@@ -34,7 +34,7 @@ public abstract class MongoDBService : IMongoDBService<BsonDocument>
         var update = Builders<OutboxEvent>.Update.Set(e => e.eventStatus, OutboxEventStatus.InProcess);
 
         using var session = _database.Client.StartSession();
-        
+    
         session.StartTransaction();
 
         try
