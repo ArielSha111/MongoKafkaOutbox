@@ -2,22 +2,19 @@
 using Model.DB;
 using Contracts;
 using MongoKafkaOutbox.DI;
-using MongoDB.Bson;
-using MongoDB.Driver;
-using MongoKafkaOutbox.Outbox.Default;
 
 public static class Startup
 {
-    public static void ConfigureServices(IServiceCollection services, IConfiguration Configuration)
+    public static void ConfigureServices(IServiceCollection services, IConfiguration configuration)
     {
         services.AddControllers();
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen();
-        services.AddSingleton(Configuration);
-        SetDiRegistration(services);
+        services.AddSingleton(configuration);
+        SetDiRegistration(services, configuration);
     }
 
-    private static void SetDiRegistration(IServiceCollection services)
+    private static void SetDiRegistration(IServiceCollection services, IConfiguration configuration)
     {
         services.AddSingleton<IExampleService, ExampleService>();
         services.AddSingleton<IDbManagerWithOutBox, DbManagerWithOutbox>();

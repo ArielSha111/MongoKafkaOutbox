@@ -1,5 +1,4 @@
 ﻿using Contracts;
-using Microsoft.Extensions.Configuration;
 using MongoKafkaOutbox.Outbox.Default;
 
 namespace Model.DB;
@@ -13,7 +12,7 @@ public class DbManagerWithOutbox(IGenericOutboxManager<Person> genericOutboxMana
         try
         {
             await genericOutboxManager.Collection.InsertOneAsync(new Person());
-            await genericOutboxManager.PublishMessage(new Event());
+            await genericOutboxManager.PublishMessageWithOutbox(new Event());
             await session.CommitTransactionAsync();
         }
         catch (Exception)

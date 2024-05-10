@@ -7,5 +7,5 @@ public interface IOutboxManager
 {
     public Task<IClientSessionHandle> StartOutboxSessionAsync();
 
-    public Task PublishMessage<T>(T message) where T : ISpecificRecord;
+    public Task PublishMessageWithOutbox<T>(T message) where T : ISpecificRecord;
 }
