@@ -8,7 +8,7 @@ using MongoKafkaOutbox.Serialization.Avro;
 
 namespace MongoKafkaOutbox.DI;
 
-public static class CachingDiManager
+public static class OutboxDiManager
 {
     public static void SetOutboxServicesWithDefaults<TCollectionType>(this IServiceCollection services,
         OutboxConfigurationBlock outboxConfigurationBlock)
