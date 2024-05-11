@@ -21,6 +21,11 @@ public abstract class OutboxManagerBase : IOutboxManager
         _avroSerializationManager = avroSerializationManager;
     }
 
+    public async Task<IClientSessionHandle> StartOutboxSessionAsync()
+    {
+        return await _mongoClient.StartSessionAsync();
+    }
+
     public async Task PublishMessageWithOutbox<T>(T message) where T : ISpecificRecord
     {
         var avroMessage = await _avroSerializationManager.GetAsAvroAsync(message);
@@ -34,10 +39,5 @@ public abstract class OutboxManagerBase : IOutboxManager
                     Payload = avroMessage
                 }
             );
-    }
-
-    public async Task<IClientSessionHandle> StartOutboxSessionAsync()
-    {
-        return await _mongoClient.StartSessionAsync();
     }
 }

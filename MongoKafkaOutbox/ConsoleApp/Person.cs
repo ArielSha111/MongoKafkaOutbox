@@ -38,6 +38,7 @@ public partial class Person : ISpecificRecord
             default: throw new AvroRuntimeException("Bad index " + fieldPos + " in Get()");
         };
     }
+
     public virtual void Put(int fieldPos, object fieldValue)
     {
         switch (fieldPos)
