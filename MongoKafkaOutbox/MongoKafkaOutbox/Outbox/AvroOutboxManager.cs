@@ -12,7 +12,8 @@ public class AvroOutboxManager : IAvroOutboxManager
     private IAvroSerializationManager _avroSerializationManager;
     private IMongoCollection<OutboxAvroDto> _outboxCollection { get; set; }
 
-    public AvroOutboxManager(IMongoClient mongoClient, IAvroSerializationManager avroSerializationManager,
+    public AvroOutboxManager(IMongoClient mongoClient,
+        IAvroSerializationManager avroSerializationManager,
         OutboxConfigurationBlock outboxConfigurationBlock)
     {
         _mongoClient = mongoClient;
