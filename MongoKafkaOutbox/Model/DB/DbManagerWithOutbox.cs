@@ -6,12 +6,12 @@ namespace Model.DB;
 
 public class DbManagerWithOutbox : IDbManagerWithOutBox
 {
-    protected IOutboxManager _outboxManager;
+    protected IAvroOutboxManager _outboxManager;
     protected IMongoClient _mongoClient;
     protected IMongoDatabase _database;
     public IMongoCollection<Person> _persons { get; set; }
 
-    public DbManagerWithOutbox(IMongoClient mongoClient, IOutboxManager outboxManager)
+    public DbManagerWithOutbox(IMongoClient mongoClient, IAvroOutboxManager outboxManager)
     {
         _outboxManager = outboxManager;
         _mongoClient = mongoClient;

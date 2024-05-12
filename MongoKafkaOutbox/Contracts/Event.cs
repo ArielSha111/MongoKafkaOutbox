@@ -1,4 +1,4 @@
-using MongoKafkaOutbox.Records.Avro.Specific;
+using MongoKafkaOutbox.Records.Specific;
 
 namespace Contracts;
 

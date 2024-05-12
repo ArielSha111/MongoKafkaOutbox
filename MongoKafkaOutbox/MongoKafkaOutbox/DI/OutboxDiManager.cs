@@ -1,10 +1,8 @@
 ﻿using Confluent.SchemaRegistry;
 using Microsoft.Extensions.DependencyInjection;
-using MongoDB.Driver;
 using MongoKafkaOutbox.Contracts;
 using MongoKafkaOutbox.Outbox;
 using MongoKafkaOutbox.Serialization;
-using MongoKafkaOutbox.Serialization.Avro;
 
 namespace MongoKafkaOutbox.DI;
 
@@ -23,8 +21,7 @@ public static class OutboxDiManager
             return schemaRegistryConfig;
         });
 
-        services.AddSingleton<ISerializationManager, DefaultSerializationManager>();
-        services.AddSingleton<IAvroSerializationManager, DefaultAvroSerializationManager>();
-        services.AddSingleton<IOutboxManager, DefaultOutboxManager>();
+        services.AddSingleton<IAvroSerializationManager, AvroSerializationManager>();
+        services.AddSingleton<IAvroOutboxManager, AvroOutboxManager>();
     }
 }

@@ -1,15 +1,8 @@
 ﻿using System.Reflection;
 using Avro;
 using Avro.Generic;
-using Avro;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using Avro.Generic;
-using Avro.Specific;
 
-namespace MongoKafkaOutbox.Records.Avro;
+namespace MongoKafkaOutbox.Records;
 
 public static class AvroExtensions
 {

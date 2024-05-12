@@ -1,7 +1,7 @@
 ﻿using Avro;
 using Avro.Specific;
 
-namespace MongoKafkaOutbox.Records.Avro.Specific;
+namespace MongoKafkaOutbox.Records.Specific;
 
 public class SpecificAvroRecord<T> : ISpecificRecord where T : new()
 {

@@ -1,6 +1,5 @@
 ﻿using Service;
 using Model.DB;
-using Contracts;
 using MongoKafkaOutbox.DI;
 using MongoDB.Driver;
 

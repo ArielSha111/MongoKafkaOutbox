@@ -3,9 +3,10 @@ using Confluent.SchemaRegistry;
 using Confluent.SchemaRegistry.Serdes;
 using MongoKafkaOutbox.Contracts;
 
-namespace MongoKafkaOutbox.Serialization.Avro;
+namespace MongoKafkaOutbox.Serialization;
 
-internal class DefaultAvroSerializationManager(SchemaRegistryConfig schemaRegistryConfig, OutboxConfigurationBlock outboxConfigurationBlock) : IAvroSerializationManager
+internal class AvroSerializationManager(SchemaRegistryConfig schemaRegistryConfig, 
+    OutboxConfigurationBlock outboxConfigurationBlock) : IAvroSerializationManager
 {
     public async Task<byte[]> GetAsAvroAsync<T>(T message)
     {

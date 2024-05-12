@@ -1,18 +1,18 @@
 ﻿using MongoDB.Driver;
 using Avro.Specific;
-using MongoKafkaOutbox.Serialization.Avro;
 using MongoKafkaOutbox.Contracts;
+using MongoKafkaOutbox.Serialization;
 
 namespace MongoKafkaOutbox.Outbox;
 
-public class DefaultOutboxManager : IOutboxManager
+public class AvroOutboxManager : IAvroOutboxManager
 {
     protected IMongoClient _mongoClient;
     protected IMongoDatabase _database;
     private IAvroSerializationManager _avroSerializationManager;
     private IMongoCollection<OutboxAvroDto> _outboxCollection { get; set; }
 
-    public DefaultOutboxManager(IMongoClient mongoClient, IAvroSerializationManager avroSerializationManager,
+    public AvroOutboxManager(IMongoClient mongoClient, IAvroSerializationManager avroSerializationManager,
         OutboxConfigurationBlock outboxConfigurationBlock)
     {
         _mongoClient = mongoClient;

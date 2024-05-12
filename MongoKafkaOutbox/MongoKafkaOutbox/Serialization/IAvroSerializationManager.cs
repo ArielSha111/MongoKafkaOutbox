@@ -1,4 +1,4 @@
-﻿namespace MongoKafkaOutbox.Serialization.Avro;
+﻿namespace MongoKafkaOutbox.Serialization;
 
 public interface IAvroSerializationManager
 {
