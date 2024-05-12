@@ -2,6 +2,7 @@
 using Model.DB;
 using Contracts;
 using MongoKafkaOutbox.DI;
+using MongoDB.Driver;
 
 public static class Startup
 {
@@ -18,11 +19,16 @@ public static class Startup
     {
         services.AddSingleton<IExampleService, ExampleService>();
         services.AddSingleton<IDbManagerWithOutBox, DbManagerWithOutbox>();
-        services.SetOutboxServicesWithDefaults<Person>(new()
+
+        services.AddSingleton<IMongoClient>(sp =>
         {
-            MongoConnectionString = "mongodb://localhost:28017",
-            MongoDBName = "KafkaOutbox",
-            MongoCollectionNames = new Dictionary<string, string>() { { "MainCollection", "MainCollection" } },
+            var client = new MongoClient("mongodb://localhost:28017");
+            return client;
+        });
+
+        services.SetOutboxServicesWithDefaults(new()
+        {
+            OutboxDbName = "KafkaOutbox",
             OutboxCollectionName = "Outbox",
             schemaRegistryConfigUrl = "http://localhost:8081",
             kafkaTopicName = "MongoKafkaOutboxTopic1",

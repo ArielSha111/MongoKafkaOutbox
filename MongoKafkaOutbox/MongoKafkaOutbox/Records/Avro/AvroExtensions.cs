@@ -1,5 +1,13 @@
 ﻿using System.Reflection;
 using Avro;
+using Avro.Generic;
+using Avro;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using Avro.Generic;
+using Avro.Specific;
 
 namespace MongoKafkaOutbox.Records.Avro;
 
@@ -27,30 +35,16 @@ public static class AvroExtensions
         return type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
     }
 
+    public static string GetAvroSchema(this GenericRecord record)
+    {
+        return record.Schema.ToString();
+    }
 
-
-    //todo support all the next type:
-    //Primitive Types:
-    //null: Represents a null value.
-    //boolean: Represents a boolean value.
-    //int: Represents a 32-bit signed integer value.
-    //long: Represents a 64-bit signed integer value.
-    //float: Represents a single-precision 32-bit IEEE 754 floating-point value.
-    //double: Represents a double-precision 64-bit IEEE 754 floating-point value.
-    //bytes: Represents a sequence of binary bytes.
-    //string: Represents a Unicode character sequence.
-
-    //Complex Types:
-    //record: Represents a complex type with named fields.
-    //enum: Represents a symbolic enumeration.
-    //array: Represents a homogeneous collection of items.
-    //map: Represents a key-value map where keys are strings.
-    //union: Represents a value that can be one of several types.
-
-    //Fixed-Size Binary Data:
-    //fixed: Represents a fixed-size binary data, with a specified number of bytes.
     private static string GetAvroType(Type type)
     {
+        if (typeof(GenericRecord).IsAssignableFrom(type))
+            return "record";
+
         return type switch
         {
             Type t when t == typeof(int) => "int",
@@ -59,7 +53,23 @@ public static class AvroExtensions
             Type t when t == typeof(double) => "double",
             Type t when t == typeof(bool) => "boolean",
             Type t when t == typeof(string) => "string",
+            Type t when t == typeof(byte[]) => "bytes",
+            Type t when t.IsEnum => $"enum {{\"type\":\"enum\",\"name\":\"{t.Name}\",\"symbols\":[{string.Join(",", t.GetEnumNames().Select(enumName => $"\"{enumName}\""))}]}}",
+            Type t when t.IsArray => $"{{\"type\":\"array\",\"items\":\"{GetAvroType(t.GetElementType())}\"}}",
+            Type t when t == typeof(Dictionary<string, object>) => "map",
+            Type t when t.IsGenericType && t.GetGenericTypeDefinition() == typeof(Dictionary<,>) => $"{{\"type\":\"map\",\"values\":\"{GetAvroType(t.GetGenericArguments()[1])}\"}}",
+            Type t when t.IsClass && t != typeof(string) => $"{{\"type\":\"record\",\"name\":\"{t.Name}\",\"fields\":{GetAvroRecordFields(t)}}}",
             _ => throw new ArgumentException($"Unsupported type: {type.Name}")
         };
+    }
+
+    private static string GetAvroRecordFields(Type type)
+    {
+        var properties = type.GetAvroProperties();
+
+        var fields = properties.Where(p => p.PropertyType != typeof(Schema))
+            .Select(p => $"{{\"name\":\"{p.Name}\",\"type\":\"{GetAvroType(p.PropertyType)}\"}}");
+
+        return $"[{string.Join(",", fields)}]";
     }
 }

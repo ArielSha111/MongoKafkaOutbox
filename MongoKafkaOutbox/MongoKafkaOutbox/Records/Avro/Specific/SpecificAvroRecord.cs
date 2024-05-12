@@ -1,9 +1,9 @@
 ﻿using Avro;
 using Avro.Specific;
 
-namespace MongoKafkaOutbox.Records.Avro;
+namespace MongoKafkaOutbox.Records.Avro.Specific;
 
-public class DynamicAvroRecord<T> : ISpecificRecord where T : new()
+public class SpecificAvroRecord<T> : ISpecificRecord where T : new()
 {
     private static readonly Schema _SCHEMA = Schema.Parse(typeof(T).GetAvroSchema());
 

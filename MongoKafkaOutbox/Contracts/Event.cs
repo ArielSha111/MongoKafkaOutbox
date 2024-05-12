@@ -1,8 +1,8 @@
-using MongoKafkaOutbox.Records.Avro;
+using MongoKafkaOutbox.Records.Avro.Specific;
 
 namespace Contracts;
 
-public partial class Event : DynamicAvroRecord<Event>
+public class Event : SpecificAvroRecord<Event>
 {
     public string Description { get; set; } = "MessageSent";
     public string Id { get; set; } = Guid.NewGuid().ToString();

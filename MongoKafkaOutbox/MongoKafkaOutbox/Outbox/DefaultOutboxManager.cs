@@ -5,25 +5,20 @@ using MongoKafkaOutbox.Contracts;
 
 namespace MongoKafkaOutbox.Outbox;
 
-public abstract class OutboxManagerBase : IOutboxManager
+public class DefaultOutboxManager : IOutboxManager
 {
     protected IMongoClient _mongoClient;
     protected IMongoDatabase _database;
     private IAvroSerializationManager _avroSerializationManager;
     private IMongoCollection<OutboxAvroDto> _outboxCollection { get; set; }
 
-    public OutboxManagerBase(IMongoClient mongoClient, IAvroSerializationManager avroSerializationManager,
+    public DefaultOutboxManager(IMongoClient mongoClient, IAvroSerializationManager avroSerializationManager,
         OutboxConfigurationBlock outboxConfigurationBlock)
     {
         _mongoClient = mongoClient;
-        _database = mongoClient.GetDatabase(outboxConfigurationBlock.MongoDBName);
+        _database = mongoClient.GetDatabase(outboxConfigurationBlock.OutboxDbName);
         _outboxCollection = _database.GetCollection<OutboxAvroDto>(outboxConfigurationBlock.OutboxCollectionName);
         _avroSerializationManager = avroSerializationManager;
-    }
-
-    public async Task<IClientSessionHandle> StartOutboxSessionAsync()
-    {
-        return await _mongoClient.StartSessionAsync();
     }
 
     public async Task PublishMessageWithOutbox<T>(T message) where T : ISpecificRecord
