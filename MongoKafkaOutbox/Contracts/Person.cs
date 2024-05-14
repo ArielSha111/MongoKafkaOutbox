@@ -1,6 +1,8 @@
+using MongoKafkaOutbox.Records;
+
 namespace Contracts;
 
-public partial class Person
+public class Person : SpecificAvroRecord<Person>
 {
     public string Name { get; set; } = "AAAA";
     public int Age { get; set; } = 100;

@@ -30,7 +30,7 @@ public static class Startup
             OutboxDbName = "KafkaOutbox",
             OutboxCollectionName = "Outbox",
             schemaRegistryConfigUrl = "http://localhost:8081",
-            kafkaTopicName = "MongoKafkaOutboxTopic1",
+            kafkaTopicName = "MongoKafkaOutboxTopic2",
         }); 
     }
 }

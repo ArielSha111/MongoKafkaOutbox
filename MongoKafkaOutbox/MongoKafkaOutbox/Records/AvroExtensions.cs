@@ -14,7 +14,7 @@ public static class AvroExtensions
         var properties = type.GetAvroProperties();
 
         var fields = properties.Where(p => p.PropertyType != typeof(Schema))
-            .Select(p => $"{{\"name\":\"{p.Name}\",\"type\":\"{GetAvroType(p.PropertyType)}\"}}");
+            .Select(p => $"{{\"name\":\"{p.Name}\",\"type\":{GetAvroType(p.PropertyType)}}}");
 
         var schema = $"{{\"type\":\"record\",\"name\":\"{type.Name}\",\"fields\":[{string.Join(",", fields)}]}}";
         return schema;
@@ -28,30 +28,22 @@ public static class AvroExtensions
         return type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
     }
 
-    public static string GetAvroSchema(this GenericRecord record)
-    {
-        return record.Schema.ToString();
-    }
-
     private static string GetAvroType(Type type)
     {
-        if (typeof(GenericRecord).IsAssignableFrom(type))
-            return "record";
-
         return type switch
         {
-            Type t when t == typeof(int) => "int",
-            Type t when t == typeof(long) => "long",
-            Type t when t == typeof(float) => "float",
-            Type t when t == typeof(double) => "double",
-            Type t when t == typeof(bool) => "boolean",
-            Type t when t == typeof(string) => "string",
-            Type t when t == typeof(byte[]) => "bytes",
-            Type t when t.IsEnum => $"enum {{\"type\":\"enum\",\"name\":\"{t.Name}\",\"symbols\":[{string.Join(",", t.GetEnumNames().Select(enumName => $"\"{enumName}\""))}]}}",
-            Type t when t.IsArray => $"{{\"type\":\"array\",\"items\":\"{GetAvroType(t.GetElementType())}\"}}",
-            Type t when t == typeof(Dictionary<string, object>) => "map",
-            Type t when t.IsGenericType && t.GetGenericTypeDefinition() == typeof(Dictionary<,>) => $"{{\"type\":\"map\",\"values\":\"{GetAvroType(t.GetGenericArguments()[1])}\"}}",
-            Type t when t.IsClass && t != typeof(string) => $"{{\"type\":\"record\",\"name\":\"{t.Name}\",\"fields\":{GetAvroRecordFields(t)}}}",
+            var t when t == typeof(int) => "\"int\"",
+            var t when t == typeof(long) => "\"long\"",
+            var t when t == typeof(float) => "\"float\"",
+            var t when t == typeof(double) => "\"double\"",
+            var t when t == typeof(bool) => "\"boolean\"",
+            var t when t == typeof(string) => "\"string\"",
+            var t when t == typeof(byte[]) => "\"bytes\"",
+            var t when t.IsEnum => $"{{\"type\":\"enum\",\"name\":\"{t.Name}\",\"symbols\":[{string.Join(",", t.GetEnumNames().Select(enumName => $"\"{enumName}\""))}]}}",
+            var t when t.IsArray => $"{{\"type\":\"array\",\"items\":{GetAvroType(t.GetElementType())}}}",
+            var t when t == typeof(Dictionary<string, object>) => "\"map\"",
+            var t when t.IsGenericType && t.GetGenericTypeDefinition() == typeof(Dictionary<,>) => $"{{\"type\":\"map\",\"values\":{GetAvroType(t.GetGenericArguments()[1])}}}",
+            var t when t.IsClass && t != typeof(string) => $"{{\"type\":\"record\",\"name\":\"{t.Name}\",\"fields\":{GetAvroRecordFields(t)}}}",
             _ => throw new ArgumentException($"Unsupported type: {type.Name}")
         };
     }
@@ -61,7 +53,7 @@ public static class AvroExtensions
         var properties = type.GetAvroProperties();
 
         var fields = properties.Where(p => p.PropertyType != typeof(Schema))
-            .Select(p => $"{{\"name\":\"{p.Name}\",\"type\":\"{GetAvroType(p.PropertyType)}\"}}");
+            .Select(p => $"{{\"name\":\"{p.Name}\",\"type\":{GetAvroType(p.PropertyType)}}}");
 
         return $"[{string.Join(",", fields)}]";
     }

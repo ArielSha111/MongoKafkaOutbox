@@ -25,11 +25,12 @@ public class DbManagerWithOutbox : IDbManagerWithOutBox
         session.StartTransaction();
         try
         {
-            await _persons.InsertOneAsync(new Person());
-            await _outboxManager.PublishMessageWithOutbox(new Event());
+            var person = new Person();
+            await _persons.InsertOneAsync(person);
+            await _outboxManager.PublishMessageWithOutbox(new Event() { StoredPerson = person});
             await session.CommitTransactionAsync();
         }
-        catch (Exception)
+        catch (Exception e)
         {
             await session.AbortTransactionAsync();
         }
