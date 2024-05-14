@@ -196,7 +196,7 @@ class Program
                 var cr = consumer.Consume();
                 var genericPerson = cr.Message.Value;
 
-                var consumedPerson = new Person
+                var consumedPerson = new Person//todo provide a way to achieve this in the nuget
                 {
                     Name = (string)genericPerson[nameof(Person.Name)],
                     Age = (int)genericPerson[nameof(Person.Age)]
