@@ -1,6 +1,5 @@
 ﻿using System.Reflection;
 using Avro;
-using Avro.Generic;
 
 namespace MongoKafkaOutbox.Records;
 
