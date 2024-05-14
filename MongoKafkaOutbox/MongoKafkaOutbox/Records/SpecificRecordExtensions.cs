@@ -3,7 +3,7 @@ using Avro;
 
 namespace MongoKafkaOutbox.Records;
 
-public static class AvroExtensions
+public static class SpecificRecordExtensions
 {
     public static string GetAvroSchema(this Type type)
     {

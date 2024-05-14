@@ -6,6 +6,7 @@ using Confluent.Kafka.SyncOverAsync;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using Avro.Generic;
+using System.Reflection;
 
 class Program
 {
@@ -196,11 +197,15 @@ class Program
                 var cr = consumer.Consume();
                 var genericPerson = cr.Message.Value;
 
-                var consumedPerson = new Person//todo provide a way to achieve this in the nuget
+                //manual conversion
+                var consumedPerson = new Person
                 {
                     Name = (string)genericPerson[nameof(Person.Name)],
                     Age = (int)genericPerson[nameof(Person.Age)]
                 };
+
+                //generic conversion
+                consumedPerson = genericPerson.ConvertTo<Person>();
 
                 Console.WriteLine($"Consumed generic record message with person: {consumedPerson.Name}");
             }
