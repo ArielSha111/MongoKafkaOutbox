@@ -1,6 +1,6 @@
 ﻿using Avro;
 using Avro.Generic;
-using Contracts;
+using Contracts.SpecificRecords;
 using MongoDB.Driver;
 using MongoKafkaOutbox.Outbox;
 
@@ -11,14 +11,14 @@ public class DbManagerWithOutbox : IDbManagerWithOutBox
     protected IAvroOutboxManager _outboxManager;
     protected IMongoClient _mongoClient;
     protected IMongoDatabase _database;
-    public IMongoCollection<Person> _persons { get; set; }
+    public IMongoCollection<SpecificPerson> _persons { get; set; }
 
     public DbManagerWithOutbox(IMongoClient mongoClient, IAvroOutboxManager outboxManager)
     {
         _outboxManager = outboxManager;
         _mongoClient = mongoClient;
         _database = mongoClient.GetDatabase("KafkaOutbox");
-        _persons = _database.GetCollection<Person>("Persons");
+        _persons = _database.GetCollection<SpecificPerson>("Persons");
     }
 
     //public async Task PutStuffInDbWithOutbox()
@@ -44,10 +44,10 @@ public class DbManagerWithOutbox : IDbManagerWithOutBox
         session.StartTransaction();
         try
         {
-            var person = new Person();
+            var person = new SpecificPerson();
             await _persons.InsertOneAsync(person);
 
-            var outboxEvent = new Event() { StoredPerson = person };
+            var outboxEvent = new SpecificEvent() { StoredPerson = person };
             await _outboxManager.PublishMessageWithOutbox(outboxEvent);
 
 

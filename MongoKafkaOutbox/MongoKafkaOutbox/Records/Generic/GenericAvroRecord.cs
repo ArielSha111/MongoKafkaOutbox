@@ -3,7 +3,7 @@ using Avro.Specific;
 
 namespace MongoKafkaOutbox.Records;
 
-public class SpecificAvroRecord<T> : ISpecificRecord where T : new()
+public class GenericAvroRecord<T>
 {
     private static readonly Schema _SCHEMA = Schema.Parse(typeof(T).GetAvroSchema());
 
