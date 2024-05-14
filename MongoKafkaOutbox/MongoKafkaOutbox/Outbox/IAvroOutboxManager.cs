@@ -1,8 +1,10 @@
-﻿using Avro.Specific;
+﻿using Avro.Generic;
+using Avro.Specific;
 
 namespace MongoKafkaOutbox.Outbox;
 
 public interface IAvroOutboxManager
 {
-    public Task PublishMessageWithOutbox<T>(T message) where T : ISpecificRecord;
+    public Task PublishMessageWithOutbox(ISpecificRecord message);
+    public Task PublishMessageWithOutbox(GenericRecord message);
 }

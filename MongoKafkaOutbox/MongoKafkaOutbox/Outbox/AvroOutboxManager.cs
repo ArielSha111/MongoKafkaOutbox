@@ -2,6 +2,7 @@
 using Avro.Specific;
 using MongoKafkaOutbox.Contracts;
 using MongoKafkaOutbox.Serialization;
+using Avro.Generic;
 
 namespace MongoKafkaOutbox.Outbox;
 
@@ -22,7 +23,17 @@ public class AvroOutboxManager : IAvroOutboxManager
         _avroSerializationManager = avroSerializationManager;
     }
 
-    public async Task PublishMessageWithOutbox<T>(T message) where T : ISpecificRecord
+    public async Task PublishMessageWithOutbox(ISpecificRecord message)
+    {
+        await PublishMessageWithOutbox<ISpecificRecord>(message);
+    }
+
+    public async Task PublishMessageWithOutbox(GenericRecord message)
+    {
+        await PublishMessageWithOutbox<GenericRecord>(message);
+    }
+
+    private async Task PublishMessageWithOutbox<T>(T message)
     {
         var avroMessage = await _avroSerializationManager.GetAsAvroAsync(message);
 
