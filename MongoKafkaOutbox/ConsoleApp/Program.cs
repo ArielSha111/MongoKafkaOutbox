@@ -5,6 +5,8 @@ using ConsoleApp3;
 using Confluent.Kafka.SyncOverAsync;
 using MongoDB.Bson;
 using MongoDB.Driver;
+using Avro.Generic;
+using System.Linq;
 
 class Program
 {
@@ -124,6 +126,40 @@ class Program
 
     }
 
+    //private static async Task StartConsumer(CachedSchemaRegistryClient schemaRegistry)
+    //{
+    //    var consumerConfig = new ConsumerConfig
+    //    {
+    //        BootstrapServers = bootstrapServers,
+    //        GroupId = consumerGroup,
+    //        AutoOffsetReset = AutoOffsetReset.Earliest
+    //    };
+
+
+    //    using var consumer = new ConsumerBuilder<Null, Person>(consumerConfig)
+    //                .SetValueDeserializer(new AvroDeserializer<Person>(schemaRegistry).AsSyncOverAsync())
+    //                .SetErrorHandler((_, e) => Console.WriteLine($"Error: {e.Reason}"))
+    //                .Build();
+
+
+    //    consumer.Subscribe(topicName);
+
+
+    //    while (true)
+    //    {
+    //        try
+    //        {
+    //            var cr = consumer.Consume();
+    //            var person = cr.Message.Value;
+    //            Console.WriteLine($"Consumed message with person: {person.Name}");
+    //        }
+    //        catch (Exception e)
+    //        {
+    //            Console.WriteLine(e);
+    //        }
+    //    }
+    //}
+
     private static async Task StartConsumer(CachedSchemaRegistryClient schemaRegistry)
     {
         var consumerConfig = new ConsumerConfig
@@ -134,8 +170,8 @@ class Program
         };
 
 
-        using var consumer = new ConsumerBuilder<Null, Person>(consumerConfig)
-                    .SetValueDeserializer(new AvroDeserializer<Person>(schemaRegistry).AsSyncOverAsync())
+        using var consumer = new ConsumerBuilder<Null, GenericRecord>(consumerConfig)
+                    .SetValueDeserializer(new AvroDeserializer<GenericRecord>(schemaRegistry).AsSyncOverAsync())
                     .SetErrorHandler((_, e) => Console.WriteLine($"Error: {e.Reason}"))
                     .Build();
 
@@ -148,8 +184,8 @@ class Program
             try
             {
                 var cr = consumer.Consume();
-                var person = cr.Message.Value;
-                Console.WriteLine($"Consumed message with person: {person.Name}");
+                var genericPerson = cr.Message.Value;
+                Console.WriteLine($"Consumed message with person: {genericPerson["Name"]}");
             }
             catch (Exception e)
             {
