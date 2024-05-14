@@ -1,10 +1,10 @@
 using MongoKafkaOutbox.Records;
 
-namespace Contracts.SpecificRecords;
+namespace Contracts;
 
-public class GenericEvent : GenericAvroRecord<GenericEvent>
+public class Event : SpecificAvroRecord<Event>
 {
     public string Description { get; set; } = "MessageSent";
     public string Id { get; set; } = Guid.NewGuid().ToString();
-    public GenericPerson StoredPerson { get; set; }
+    public Person StoredPerson { get; set; }
 }

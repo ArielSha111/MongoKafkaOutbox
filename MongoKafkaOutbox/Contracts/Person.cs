@@ -1,8 +1,8 @@
 using MongoKafkaOutbox.Records;
 
-namespace Contracts.SpecificRecords;
+namespace Contracts;
 
-public class GenericPerson : GenericAvroRecord<GenericEvent>
+public class Person : SpecificAvroRecord<Person>
 {
     public string Name { get; set; } = "AAAA";
     public int Age { get; set; } = 100;
