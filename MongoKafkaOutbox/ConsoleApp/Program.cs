@@ -6,7 +6,6 @@ using Confluent.Kafka.SyncOverAsync;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using Avro.Generic;
-using System.Reflection;
 
 class Program
 {
